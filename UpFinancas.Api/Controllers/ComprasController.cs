@@ -86,6 +86,6 @@ namespace UpFinancas.Api.Controllers
     public record CompraAtualizadaDto(
         string Titular, string Descricao, decimal ValorTotal, 
         int ParcelaAtual, int QuantidadeParcelas, DateTime DataCompra, 
-        int CartaoDeCreditoId, bool FoiPago // <--- ADICIONADO NO DTO
+        int CartaoDeCreditoId, bool FoiPago // <--- ADICIONADO NO DTOs
     );
 }
