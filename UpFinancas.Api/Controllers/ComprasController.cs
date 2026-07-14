@@ -28,15 +28,16 @@ namespace UpFinancas.Api.Controllers
                     c.ParcelaAtual,
                     c.QuantidadeParcelas,
                     c.DataCompra,
-                    c.FoiPago, // <--- ADICIONADO AQUI
+                    c.FoiPago,
+                    c.Categoria,
                     c.CartaoDeCreditoId,
                     CartaoDeCredito = c.CartaoDeCredito != null ? new {
                         c.CartaoDeCredito.Id,
                         c.CartaoDeCredito.NomeBanco,
                         c.CartaoDeCredito.CorHexadecimal,
                         c.CartaoDeCredito.NumeroFinal,
-                        c.CartaoDeCredito.DiaFechamento, // <--- ADICIONADO AQUI
-                        c.CartaoDeCredito.DiaPagamento   // <--- ADICIONADO AQUI
+                        c.CartaoDeCredito.DiaFechamento,
+                        c.CartaoDeCredito.DiaPagamento
                     } : null
                 })
                 .ToListAsync();
@@ -65,7 +66,8 @@ namespace UpFinancas.Api.Controllers
             compra.QuantidadeParcelas = dados.QuantidadeParcelas;
             compra.DataCompra = dados.DataCompra;
             compra.CartaoDeCreditoId = dados.CartaoDeCreditoId;
-            compra.FoiPago = dados.FoiPago; // <--- ADICIONADO AQUI
+            compra.FoiPago = dados.FoiPago;
+            compra.Categoria = dados.Categoria;
 
             await _db.SaveChangesAsync();
             return Ok(compra);
@@ -86,6 +88,6 @@ namespace UpFinancas.Api.Controllers
     public record CompraAtualizadaDto(
         string Titular, string Descricao, decimal ValorTotal, 
         int ParcelaAtual, int QuantidadeParcelas, DateTime DataCompra, 
-        int CartaoDeCreditoId, bool FoiPago // <--- ADICIONADO NO DTOs
+        int CartaoDeCreditoId, bool FoiPago, string Categoria
     );
 }

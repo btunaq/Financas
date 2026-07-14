@@ -1,15 +1,22 @@
-namespace UpFinancas.Api.Models;
+using System.Text.Json.Serialization;
 
-public class CompraCartao
+namespace UpFinancas.Api.Models
 {
-    public int Id { get; set; }
-    public string Descricao { get; set; } = string.Empty;
-    public decimal ValorTotal { get; set; }
-    public int QuantidadeParcelas { get; set; }
-    public DateTime DataCompra { get; set; }
-    public string Titular { get; set; } = string.Empty; 
-    public int ParcelaAtual { get; set; }
-    public int CartaoDeCreditoId { get; set; }  
-    public bool FoiPago { get; set; } = false;
-    public CartaoDeCredito? CartaoDeCredito { get; set; }
+    public class CompraCartao
+    {
+        public int Id { get; set; }
+        public string Titular { get; set; } = string.Empty;
+        public string Descricao { get; set; } = string.Empty;
+        public decimal ValorTotal { get; set; }
+        public int ParcelaAtual { get; set; } = 1;
+        public int QuantidadeParcelas { get; set; }
+        public DateTime DataCompra { get; set; }
+        public bool FoiPago { get; set; } = false;
+        public string Categoria { get; set; } = "Outros";
+        
+        public int CartaoDeCreditoId { get; set; }
+        
+        [JsonIgnore]
+        public CartaoDeCredito? CartaoDeCredito { get; set; }
+    }
 }

@@ -6,7 +6,7 @@ using UpFinancas.Api.Models;
 namespace UpFinancas.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // O .NET transforma isto em "api/cartoes"
+    [Route("api/[controller]")]
     public class CartoesController : ControllerBase
     {
         private readonly AppDbContext _db;
@@ -16,7 +16,6 @@ namespace UpFinancas.Api.Controllers
             _db = db;
         }
 
-        // GET: api/cartoes
         [HttpGet]
         public async Task<IActionResult> GetCartoes()
         {
@@ -24,16 +23,25 @@ namespace UpFinancas.Api.Controllers
             return Ok(cartoes);
         }
 
-        // POST: api/cartoes
-        [HttpPost]
-        public async Task<IActionResult> AdicionarCartao([FromBody] CartaoDeCredito cartao)
+       [HttpPost]
+    public async Task<IActionResult> AdicionarCartao([FromBody] CartaoDeCredito cartao)
+    {
+        // Verifica se já existe um cartão com o mesmo banco e o mesmo final
+        bool cartaoExiste = await _db.Cartoes.AnyAsync(c => 
+            c.NomeBanco.ToLower() == cartao.NomeBanco.ToLower() && 
+            c.NumeroFinal == cartao.NumeroFinal);
+
+        if (cartaoExiste)
         {
-            _db.Cartoes.Add(cartao);
-            await _db.SaveChangesAsync();
-            return Ok(cartao);
+            // Retorna o Erro 400 (Bad Request) com uma mensagem clara
+            return BadRequest("Já existe um cartão registado com este mesmo banco e dígitos finais.");
         }
 
-        // DELETE: api/cartoes/{id}
+        _db.Cartoes.Add(cartao);
+        await _db.SaveChangesAsync();
+        return Ok(cartao);
+}
+
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> ExcluirCartao(int id)
         {
