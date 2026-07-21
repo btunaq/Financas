@@ -1,13 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using UpFinancas.Api.Models;
 
-namespace UpFinancas.Api.Data;
-
-public class AppDbContext : DbContext
+namespace UpFinancas.Api.Data
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    // Aqui definimos as tabelas que serão criadas no banco
-    public DbSet<CartaoDeCredito> Cartoes { get; set; }
-    public DbSet<CompraCartao> ComprasCartao { get; set; }
+        public DbSet<CartaoDeCredito> CartoesDeCredito { get; set; }
+        public DbSet<CompraCartao> ComprasCartao { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // O ficheiro agora está limpo! 
+            // O banco de dados vai nascer vazio no Docker dos teus colegas,
+            // e eles terão de criar a própria conta pela tela de "Criar Conta".
+            
+            base.OnModelCreating(modelBuilder);
+        }
+    }
 }

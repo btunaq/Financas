@@ -11,6 +11,8 @@ namespace UpFinancas.Api.Models
         public int DiaFechamento { get; set; }
         public int DiaPagamento { get; set; }
 
+        public int UsuarioId { get; set; } = 1;
+
         [JsonIgnore]
         public List<CompraCartao> Compras { get; set; } = new();
     }

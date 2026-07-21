@@ -8,6 +8,9 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
   const [compraEditandoId, setCompraEditandoId] = useState(null);
   const [foiPagoEdicao, setFoiPagoEdicao] = useState(false);
 
+  const [pagamentoEmConfirmacao, setPagamentoEmConfirmacao] = useState(null);
+  const [pendenteEmConfirmacao, setPendenteEmConfirmacao] = useState(null);
+
   const [titular, setTitular] = useState('');
   const [cartaoId, setCartaoId] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -18,6 +21,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
   const [tipoPagamento, setTipoPagamento] = useState('parcelado');
   const [parcelaAtual, setParcelaAtual] = useState(1);
   const [parcelas, setParcelas] = useState('');
+  const [mesesPagosForm, setMesesPagosForm] = useState('');
   const [mostrarAntecipacao, setMostrarAntecipacao] = useState(false);
   const [qtdAntecipada, setQtdAntecipada] = useState('');
 
@@ -27,42 +31,35 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
   const [diaFechamento, setDiaFechamento] = useState('');
   const [diaPagamento, setDiaPagamento] = useState('');
 
-  // =========================================================
-  // FÓRMULA CORRIGIDA: Respeita a ParcelaAtual do Banco de Dados
-  // =========================================================
+  const [filtrosTitular, setFiltrosTitular] = useState({});
+
   const obterInfoParcela = (compra, dataAlvo) => {
     if (!compra.dataCompra) return { ativa: false };
 
     const dtCompra = new Date(compra.dataCompra);
-    // Calcula a distância de meses entre o mês da compra e o mês selecionado na seta do topo
     const diferencaMeses = (dataAlvo.getFullYear() - dtCompra.getFullYear()) * 12 + (dataAlvo.getMonth() - dtCompra.getMonth());
     const totalParc = compra.quantidadeParcelas !== undefined ? compra.quantidadeParcelas : (compra.parcelas || 1);
 
-    // Se for Assinatura Fixa (0 parcelas)
+    const chaveMes = `${dataAlvo.getFullYear()}-${String(dataAlvo.getMonth() + 1).padStart(2, '0')}`;
+    const isPago = (compra.mesesPagos || "").includes(chaveMes);
+
     if (totalParc === 0) {
-      return { ativa: diferencaMeses >= 0, txtParcela: '♾️ ASSIN.', isAssinatura: true, totalParc: 1 };
+      return { ativa: diferencaMeses >= 0, txtParcela: '♾️ ASSIN.', isAssinatura: true, totalParc: 1, chaveMes, isPago };
     }
 
-    // A mágica: Soma a distância de meses à parcela que veio gravada do banco!
     const pAtualCalculada = (compra.parcelaAtual != null ? compra.parcelaAtual : 1) + diferencaMeses;
 
-    // A parcela só existe se estiver dentro do intervalo de 1 até o total contratado
     if (pAtualCalculada >= 1 && pAtualCalculada <= totalParc) {
-      return { 
-        ativa: true, 
-        txtParcela: `${pAtualCalculada}/${totalParc}`, 
-        isAssinatura: false,
-        totalParc
-      };
+      return { ativa: true, txtParcela: `${pAtualCalculada}/${totalParc}`, isAssinatura: false, totalParc, chaveMes, isPago };
     }
 
-    return { ativa: false }; // Compra já expirou ou ainda não aconteceu nesse mês alvo
+    return { ativa: false };
   };
 
   const fecharFormulario = () => {
     setTitular(''); setDescricao(''); setValor(''); setData(''); 
     setParcelas(''); setParcelaAtual(1); setCategoria('Alimentação / Fast Food'); 
-    setCompraEditandoId(null); setFoiPagoEdicao(false);
+    setCompraEditandoId(null); setFoiPagoEdicao(false); setMesesPagosForm('');
     setTipoPagamento('parcelado'); setMostrarAntecipacao(false); setQtdAntecipada('');
     setVista('lista');
   };
@@ -81,6 +78,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     setValor(compra.valorTotal || compra.valor);
     setData(compra.dataCompra ? compra.dataCompra.split('T')[0] : '');
     setFoiPagoEdicao(compra.foiPago || false);
+    setMesesPagosForm(compra.mesesPagos || '');
     setCategoria(compra.categoria || 'Outros');
     
     const totalParc = compra.quantidadeParcelas !== undefined ? compra.quantidadeParcelas : (compra.parcelas || 1);
@@ -101,21 +99,56 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     setVista('form_compra');
   };
 
-  const handleAlternarStatus = async (compra) => {
-    const dadosAtualizados = {
-      titular: compra.titular,
-      descricao: compra.descricao,
-      valorTotal: compra.valorTotal,
-      parcelaAtual: compra.parcelaAtual,
-      quantidadeParcelas: compra.quantidadeParcelas,
-      dataCompra: compra.dataCompra,
-      cartaoDeCreditoId: compra.cartaoDeCreditoId,
-      categoria: compra.categoria || 'Outros',
-      foiPago: !compra.foiPago
-    };
+  const handleAlternarStatus = async (item) => {
+    let novosMesesPagos = item.original.mesesPagos || "";
     
-    const sucesso = await editarCompra(compra.id, dadosAtualizados);
+    if (item.info.isPago) {
+      novosMesesPagos = novosMesesPagos.replace(item.info.chaveMes, "").split(',').filter(m => m).join(',');
+    } else {
+      novosMesesPagos = novosMesesPagos ? `${novosMesesPagos},${item.info.chaveMes}` : item.info.chaveMes;
+    }
+
+    const dadosAtualizados = { ...item.original, mesesPagos: novosMesesPagos };
+    const sucesso = await editarCompra(item.original.id, dadosAtualizados);
     if (!sucesso) alert("Erro ao atualizar o status.");
+  };
+
+  const confirmarPagamentoLote = async (cartaoIdSelecionado, comprasMapeadas, titularFiltrado) => {
+    let comprasPendentes = comprasMapeadas.filter(item => !item.info.isPago);
+
+    if (titularFiltrado) {
+       comprasPendentes = comprasPendentes.filter(item => {
+         let nomeFormatado = item.original.titular ? item.original.titular.trim().toLowerCase() : 'desconhecido';
+         return (nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1)) === titularFiltrado;
+       });
+    }
+
+    try {
+      await Promise.all(comprasPendentes.map(item => {
+        const novosMeses = item.original.mesesPagos ? `${item.original.mesesPagos},${item.info.chaveMes}` : item.info.chaveMes;
+        return editarCompra(item.original.id, { ...item.original, mesesPagos: novosMeses });
+      }));
+    } catch (error) { alert("Erro ao processar pagamentos."); }
+    setPagamentoEmConfirmacao(null);
+  };
+
+  const confirmarPendenteLote = async (cartaoIdSelecionado, comprasMapeadas, titularFiltrado) => {
+    let comprasPagas = comprasMapeadas.filter(item => item.info.isPago);
+
+    if (titularFiltrado) {
+       comprasPagas = comprasPagas.filter(item => {
+         let nomeFormatado = item.original.titular ? item.original.titular.trim().toLowerCase() : 'desconhecido';
+         return (nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1)) === titularFiltrado;
+       });
+    }
+
+    try {
+      await Promise.all(comprasPagas.map(item => {
+        const novosMeses = (item.original.mesesPagos || "").replace(item.info.chaveMes, "").split(',').filter(m => m).join(',');
+        return editarCompra(item.original.id, { ...item.original, mesesPagos: novosMeses });
+      }));
+    } catch (error) { alert("Erro ao reverter para pendente."); }
+    setPendenteEmConfirmacao(null);
   };
 
   const handleCompraSubmit = async (e) => {
@@ -145,7 +178,8 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
       dataCompra: data, 
       cartaoDeCreditoId: parseInt(idSelecionado),
       categoria: categoria,
-      foiPago: compraEditandoId ? foiPagoEdicao : false
+      foiPago: compraEditandoId ? foiPagoEdicao : false,
+      mesesPagos: mesesPagosForm 
     };
 
     let sucesso = compraEditandoId ? await editarCompra(compraEditandoId, dados) : await adicionarCompra(dados);
@@ -230,7 +264,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
             </div>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">Descrição da Compra</label>
+            <label className="block text-sm font-bold text-slate-600 mb-2">Descrição da Compra / Nome da Assinatura</label>
             <input required value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Monitor PC" className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div>
@@ -338,33 +372,61 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
             const nomeDoBanco = partesTitulo[0];
             const numFinal = partesTitulo.length > 1 ? `Final ${partesTitulo[1]}` : '';
 
-            // Filtra as compras usando a nossa nova lógica temporal dinâmica corrigida
-            const comprasAtivasNoMes = dados.compras.filter(c => obterInfoParcela(c, dataFoco).ativa);
+            const toggleFiltro = (nomeSelecionado) => {
+              setFiltrosTitular(prev => ({
+                ...prev,
+                [tituloCartao]: prev[tituloCartao] === nomeSelecionado ? null : nomeSelecionado
+              }));
+              setPagamentoEmConfirmacao(null);
+              setPendenteEmConfirmacao(null);
+            };
 
-            const totalFaturaMes = comprasAtivasNoMes.reduce((acc, c) => {
-              if (c.foiPago) return acc; 
-              const info = obterInfoParcela(c, dataFoco);
-              const totalMv = c.valorTotal || c.valor || 0;
-              return acc + (totalMv / (info.totalParc || 1));
+            const filtroAtivo = filtrosTitular[tituloCartao];
+            const comprasAtivasMapeadas = dados.compras
+              .map(c => ({ original: c, info: obterInfoParcela(c, dataFoco) }))
+              .filter(item => item.info.ativa);
+
+            const totalFaturaMes = comprasAtivasMapeadas.reduce((acc, item) => {
+              if (item.info.isPago) return acc; 
+              const totalMv = item.original.valorTotal || item.original.valor || 0;
+              return acc + (totalMv / (item.info.totalParc || 1));
             }, 0);
 
-            const totaisPorTitular = comprasAtivasNoMes.reduce((acc, c) => {
-              if (c.foiPago) return acc; 
-              const info = obterInfoParcela(c, dataFoco);
-              const totalMv = c.valorTotal || c.valor || 0;
-              const valorParc = totalMv / (info.totalParc || 1);
-              
-              let nomeFormatado = c.titular ? c.titular.trim().toLowerCase() : 'desconhecido';
+            // LOGICA ALTERADA AQUI: Adiciona sempre o nome, mas só soma o valor se NÃO estiver pago.
+            const totaisPorTitular = comprasAtivasMapeadas.reduce((acc, item) => {
+              let nomeFormatado = item.original.titular ? item.original.titular.trim().toLowerCase() : 'desconhecido';
               nomeFormatado = nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1);
-              acc[nomeFormatado] = (acc[nomeFormatado] || 0) + valorParc;
+              
+              // Garante que a pessoa existe na lista (mesmo que o valor seja 0 depois)
+              if (!acc[nomeFormatado]) {
+                acc[nomeFormatado] = 0;
+              }
+
+              // Só soma o valor do dinheiro se a conta AINDA NÃO estiver paga
+              if (!item.info.isPago) {
+                const totalMv = item.original.valorTotal || item.original.valor || 0;
+                const valorParc = totalMv / (item.info.totalParc || 1);
+                acc[nomeFormatado] += valorParc;
+              }
+              
               return acc;
             }, {});
 
+            const comprasFiltradas = filtroAtivo 
+              ? comprasAtivasMapeadas.filter(item => {
+                  let nomeFormatado = item.original.titular ? item.original.titular.trim().toLowerCase() : 'desconhecido';
+                  return (nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1)) === filtroAtivo;
+                })
+              : comprasAtivasMapeadas;
+
+            const temComprasPendentesNaTabela = comprasFiltradas.some(item => !item.info.isPago);
+            const temComprasPagasNaTabela = comprasFiltradas.some(item => item.info.isPago);
+
             return (
-              <div key={tituloCartao} className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative" style={{ borderLeft: `6px solid ${dados.cor}` }}>
+              <div key={tituloCartao} className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative" style={{ borderLeft: `6px solid ${dados.cor}`, height: '500px' }}>
                 
                 <div className="px-5 py-4 flex flex-row items-start justify-between border-b border-slate-100 gap-4 shrink-0 bg-white z-20">
-                  <div className="flex flex-col gap-3 min-w-[140px]">
+                  <div className="flex flex-col gap-2 min-w-[140px]">
                     <div>
                       <h4 className="text-lg font-bold flex items-center gap-2">
                         <span className="text-slate-300 opacity-60">💳</span>
@@ -379,18 +441,63 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                       <span className="text-[10px] font-bold text-slate-400 uppercase block leading-tight">Fatura</span>
                       <span className="text-xl font-black text-slate-800 leading-tight">R$ {totalFaturaMes.toFixed(2)}</span>
                     </div>
+                    
+                    <div className="h-7 mt-1 flex items-center">
+                      {temComprasPendentesNaTabela ? (
+                        pagamentoEmConfirmacao === dados.cartaoId ? (
+                          <div className="flex gap-1 bg-emerald-50 p-0.5 rounded border border-emerald-200 animate-fade-in w-fit shadow-sm">
+                            <button onClick={() => confirmarPagamentoLote(dados.cartaoId, comprasAtivasMapeadas, filtroAtivo)} className="text-emerald-700 hover:bg-emerald-100 px-2 py-1 rounded text-[10px] font-black tracking-widest flex items-center gap-1 transition-colors">
+                              <span>✔️</span> SIM
+                            </button>
+                            <button onClick={() => setPagamentoEmConfirmacao(null)} className="text-rose-600 hover:bg-rose-100 px-2 py-1 rounded text-[10px] font-black tracking-widest transition-colors">
+                              ❌ NÃO
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setPagamentoEmConfirmacao(dados.cartaoId)} className="text-[9px] font-black tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-1.5 rounded hover:bg-emerald-100 transition-colors shadow-sm w-fit">
+                            ✓ {filtroAtivo ? `PAGAR ${filtroAtivo.toUpperCase()}` : 'PAGAR TUDO'}
+                          </button>
+                        )
+                      ) : temComprasPagasNaTabela ? (
+                        pendenteEmConfirmacao === dados.cartaoId ? (
+                          <div className="flex gap-1 bg-amber-50 p-0.5 rounded border border-amber-200 animate-fade-in w-fit shadow-sm">
+                            <button onClick={() => confirmarPendenteLote(dados.cartaoId, comprasAtivasMapeadas, filtroAtivo)} className="text-amber-700 hover:bg-amber-100 px-2 py-1 rounded text-[10px] font-black tracking-widest flex items-center gap-1 transition-colors">
+                              <span>✔️</span> SIM
+                            </button>
+                            <button onClick={() => setPendenteEmConfirmacao(null)} className="text-rose-600 hover:bg-rose-100 px-2 py-1 rounded text-[10px] font-black tracking-widest transition-colors">
+                              ❌ NÃO
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setPendenteEmConfirmacao(dados.cartaoId)} className="text-[9px] font-black tracking-widest bg-amber-50 text-amber-600 border border-amber-200 px-2 py-1.5 rounded hover:bg-amber-100 transition-colors shadow-sm w-fit">
+                            ⟲ {filtroAtivo ? `VOLTAR ${filtroAtivo.toUpperCase()}` : 'TUDO PENDENTE'}
+                          </button>
+                        )
+                      ) : null}
+                    </div>
                   </div>
                   
                   <div className="flex-1 border-l border-slate-100/50 pl-4">
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(totaisPorTitular).map(([nome, valor]) => (
-                        <div key={nome} className="flex justify-between items-center bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200 shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase truncate mr-2" title={nome}>{nome}</span>
-                          <span className="text-xs font-black text-slate-800 whitespace-nowrap">R$ {valor.toFixed(2)}</span>
-                        </div>
-                      ))}
+                      {Object.entries(totaisPorTitular).map(([nome, valor]) => {
+                        const isSelecionado = filtroAtivo === nome;
+                        return (
+                          <div 
+                            key={nome} 
+                            onClick={() => toggleFiltro(nome)}
+                            className={`flex justify-between items-center px-2.5 py-1.5 rounded-md border shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 ${
+                              isSelecionado ? '' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                            }`}
+                            style={isSelecionado ? { backgroundColor: dados.cor, borderColor: dados.cor } : {}}
+                            title={isSelecionado ? "Clique para limpar o filtro" : `Clique para ver apenas os gastos de ${nome}`}
+                          >
+                            <span className={`text-[10px] font-bold uppercase truncate mr-2 ${isSelecionado ? 'text-white opacity-90' : 'text-slate-500'}`}>{nome}</span>
+                            <span className={`text-xs font-black whitespace-nowrap ${isSelecionado ? 'text-white' : 'text-slate-800'}`}>R$ {valor.toFixed(2)}</span>
+                          </div>
+                        );
+                      })}
                       {Object.keys(totaisPorTitular).length === 0 && (
-                        <span className="text-xs text-slate-400 font-medium italic col-span-2">Fatura Zerada</span>
+                        <span className="text-xs text-slate-400 font-medium italic col-span-2">Nenhuma compra ativa</span>
                       )}
                     </div>
                   </div>
@@ -402,7 +509,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                   </div>
                 </div>
 
-                {/* Exibição limpa limitando a max-h e com barra invisível */}
                 <div className="flex-1 overflow-y-auto w-full relative max-h-[320px] hide-scroll">
                   <table className="w-full text-left text-sm table-auto">
                     <thead className="bg-white text-slate-400 font-bold uppercase text-[9px] tracking-wider sticky top-0 z-10 shadow-sm border-b border-slate-100">
@@ -417,52 +523,56 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {comprasAtivasNoMes.map(compra => {
-                        const info = obterInfoParcela(compra, dataFoco);
-                        const vTotal = compra.valorTotal || compra.valor || 0;
-                        const vParc = vTotal / (info.totalParc || 1);
+                      {comprasFiltradas.length === 0 ? (
+                        <tr>
+                           <td colSpan="7" className="text-center py-8 text-slate-400 font-medium italic">
+                             Nenhuma compra encontrada neste mês.
+                           </td>
+                        </tr>
+                      ) : (
+                        comprasFiltradas.map(item => {
+                          const vTotal = item.original.valorTotal || item.original.valor || 0;
+                          const vParc = vTotal / (item.info.totalParc || 1);
 
-                        return (
-                          <tr key={compra.id} className={`hover:bg-slate-50 transition-colors ${compra.foiPago ? 'opacity-50' : ''}`}>
-                            <td className="px-2 py-3 whitespace-nowrap">
-                              <button onClick={() => handleAlternarStatus(compra)} className={`px-2 py-1 rounded text-[9px] font-black tracking-widest transition-all shadow-sm border ${compra.foiPago ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
-                                {compra.foiPago ? 'PAGO' : 'PENDENTE'}
-                              </button>
-                            </td>
-                            <td className="px-2 py-3">
-                              <p className="font-bold text-slate-700 text-xs truncate max-w-[80px]">{compra.titular}</p>
-                              <p className="text-[10px] text-slate-400 font-medium truncate max-w-[80px]">{compra.categoria}</p>
-                            </td>
-                            <td className="px-2 py-3">
-                              <p className={`font-medium text-xs truncate max-w-[100px] ${compra.foiPago ? 'line-through text-slate-400' : 'text-slate-600'}`}>{compra.descricao}</p>
-                            </td>
-                            <td className="px-2 py-3 text-center whitespace-nowrap">
-                              <span className={`${info.isAssinatura ? 'text-fuchsia-600' : 'text-indigo-500'} font-bold text-xs`}>
-                                {info.txtParcela}
-                              </span>
-                            </td>
-                            <td className="px-2 py-3 text-right whitespace-nowrap">
-                               <p className="font-bold text-slate-700 text-xs">R$ {vParc.toFixed(2)}</p>
-                            </td>
-                            <td className="px-2 py-3 text-right whitespace-nowrap">
-                               <p className="font-bold text-slate-800 text-xs">{info.isAssinatura ? 'Mensal' : `R$ ${vTotal.toFixed(2)}`}</p>
-                            </td>
-                            <td className="px-2 py-3 text-center whitespace-nowrap">
-                              {compraEmExclusao === compra.id ? (
-                                <div className="flex justify-center gap-1 bg-rose-50 p-1 rounded border border-rose-200 animate-fade-in">
-                                  <button onClick={() => { excluirCompra(compra.id); setCompraEmExclusao(null); }} className="text-emerald-600 hover:bg-emerald-100 px-1.5 py-0.5 rounded text-sm font-bold">✔️</button>
-                                  <button onClick={() => setCompraEmExclusao(null)} className="text-rose-600 hover:bg-rose-100 px-1.5 py-0.5 rounded text-sm font-bold">❌</button>
-                                </div>
-                              ) : (
+                          return (
+                            <tr key={item.original.id} className={`hover:bg-slate-50 transition-colors ${item.info.isPago ? 'opacity-50' : ''}`}>
+                              <td className="px-2 py-3 whitespace-nowrap">
+                                <button 
+                                  onClick={() => handleAlternarStatus(item)} 
+                                  className={`px-2 py-1 rounded text-[9px] font-black tracking-widest transition-all shadow-sm border ${item.info.isPago ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'}`}
+                                  title={item.info.isPago ? "Clique para marcar como Pendente" : "Clique para marcar como Pago"}
+                                >
+                                  {item.info.isPago ? 'PAGO' : 'PENDENTE'}
+                                </button>
+                              </td>
+                              <td className="px-2 py-3">
+                                <p className="font-bold text-slate-700 text-xs truncate max-w-[80px]">{item.original.titular}</p>
+                                <p className="text-[10px] text-slate-400 font-medium truncate max-w-[80px]">{item.original.categoria}</p>
+                              </td>
+                              <td className="px-2 py-3">
+                                <p className={`font-medium text-xs truncate max-w-[100px] ${item.info.isPago ? 'line-through text-slate-400' : 'text-slate-600'}`}>{item.original.descricao}</p>
+                              </td>
+                              <td className="px-2 py-3 text-center whitespace-nowrap">
+                                <span className={`${item.info.isAssinatura ? 'text-fuchsia-600' : 'text-indigo-500'} font-bold text-xs`}>
+                                  {item.info.txtParcela}
+                               </span>
+                              </td>
+                              <td className="px-2 py-3 text-right whitespace-nowrap">
+                                 <p className="font-bold text-slate-700 text-xs">R$ {vParc.toFixed(2)}</p>
+                              </td>
+                              <td className="px-2 py-3 text-right whitespace-nowrap">
+                                 <p className="font-bold text-slate-800 text-xs">{item.info.isAssinatura ? 'Mensal' : `R$ ${vTotal.toFixed(2)}`}</p>
+                              </td>
+                              <td className="px-2 py-3 text-center whitespace-nowrap">
                                 <div className="flex justify-center items-center space-x-2 opacity-80 hover:opacity-100">
-                                  <button onClick={() => iniciarEdicao(compra)} className="text-indigo-500 text-lg">✏️</button>
-                                  <button onClick={() => setCompraEmExclusao(compra.id)} className="text-rose-500 text-lg font-black">✕</button>
+                                  <button onClick={() => iniciarEdicao(item.original)} className="text-indigo-500 text-lg">✏️</button>
+                                  <button onClick={() => setCompraEmExclusao(item.original.id)} className="text-rose-500 text-lg font-black">✕</button>
                                 </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>

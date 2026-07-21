@@ -9,10 +9,13 @@ namespace UpFinancas.Api.Models
         public string Descricao { get; set; } = string.Empty;
         public decimal ValorTotal { get; set; }
         public int ParcelaAtual { get; set; } = 1;
+        public int UsuarioId { get; set; } = 1;
         public int QuantidadeParcelas { get; set; }
         public DateTime DataCompra { get; set; }
         public bool FoiPago { get; set; } = false;
         public string Categoria { get; set; } = "Outros";
+
+        public string? MesesPagos { get; set; } = "";
         
         public int CartaoDeCreditoId { get; set; }
         

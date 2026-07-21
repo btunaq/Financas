@@ -1,124 +1,110 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = 'http://localhost:5174/api';
+const API_URL = 'http://localhost:8080/api';
 
 export function useFinancas() {
   const [comprasCartao, setComprasCartao] = useState([]);
   const [cartoes, setCartoes] = useState([]);
-  // Mock para as futuras áreas
-  const [gastosFixos, setGastosFixos] = useState([]);
-  const [emprestimos, setEmprestimos] = useState([]);
+  const [comprasPorCartao, setComprasPorCartao] = useState({});
 
-  const buscarDados = async () => {
-    try {
-      const resCartoes = await fetch(`${API_URL}/cartoes`);
-      if (resCartoes.ok) setCartoes(await resCartoes.json());
-
-      const resCompras = await fetch(`${API_URL}/compras`);
-      if (resCompras.ok) setComprasCartao(await resCompras.json());
-    } catch (erro) {
-      console.error("Erro ao buscar dados da API:", erro);
-    }
+  // Adiciona o Token mágico a todas as requisições!
+  const getHeaders = () => {
+    const token = localStorage.getItem('upfinancas_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` 
+    };
   };
 
-  useEffect(() => {
-    buscarDados();
+  const carregarDados = useCallback(async () => {
+    const token = localStorage.getItem('upfinancas_token');
+    if (!token) return; // Se não houver token, não faz nada.
+
+    try {
+      const resCartoes = await fetch(`${API_URL}/cartoes`, { headers: getHeaders() });
+      if (!resCartoes.ok) throw new Error("Erro de autorização");
+      const dataCartoes = await resCartoes.json();
+      setCartoes(dataCartoes);
+
+      const resCompras = await fetch(`${API_URL}/compras`, { headers: getHeaders() });
+      const dataCompras = await resCompras.json();
+      setComprasCartao(dataCompras);
+
+      const agrupado = {};
+      dataCartoes.forEach(cartao => {
+        const numFinal = cartao.numeroFinal ? ` - Final ${cartao.numeroFinal}` : '';
+        const titulo = `${cartao.nomeBanco}${numFinal}`;
+        agrupado[titulo] = {
+          cartaoId: cartao.id,
+          nomeBanco: cartao.nomeBanco,
+          cor: cartao.corHexadecimal || '#8A05BE',
+          diaFechamento: cartao.diaFechamento,
+          diaPagamento: cartao.diaPagamento,
+          compras: []
+        };
+      });
+
+      dataCompras.forEach(compra => {
+        if (compra.cartaoDeCredito) {
+          const numFinal = compra.cartaoDeCredito.numeroFinal ? ` - Final ${compra.cartaoDeCredito.numeroFinal}` : '';
+          const titulo = `${compra.cartaoDeCredito.nomeBanco}${numFinal}`;
+          if (agrupado[titulo]) {
+            agrupado[titulo].compras.push(compra);
+          }
+        }
+      });
+
+      setComprasPorCartao(agrupado);
+    } catch (error) {
+      console.error("Erro ao carregar dados", error);
+      // Opcional: Se der erro de autorização, forçar logout
+      // if (error.message === "Erro de autorização") window.location.replace('/');
+    }
   }, []);
 
-  const adicionarCartao = async (novoCartao) => {
-  try {
-    const res = await fetch(`${API_URL}/cartoes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(novoCartao)
-    });
-    
-    if (res.ok) { 
-      buscarDados(); 
-      return { sucesso: true }; 
-    } else {
-      // Lê a mensagem de erro enviada pelo return BadRequest(...) do C#
-      const mensagemErro = await res.text();
-      return { sucesso: false, erro: mensagemErro };
-    }
-  } catch (erro) { 
-    return { sucesso: false, erro: "Falha de comunicação com o servidor." }; 
-  }
-};
+  useEffect(() => {
+    carregarDados();
+  }, [carregarDados]);
 
-  const excluirCartao = async (id) => {
+  const adicionarCartao = async (dados) => {
     try {
-      const res = await fetch(`${API_URL}/cartoes/${id}`, { method: 'DELETE' });
-      if (res.ok) { buscarDados(); return true; }
-      return false;
-    } catch (erro) { return false; }
+      const res = await fetch(`${API_URL}/cartoes`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(dados) });
+      if (res.ok) { await carregarDados(); return { sucesso: true }; }
+      return { sucesso: false, erro: 'Erro ao cadastrar' };
+    } catch (error) { return { sucesso: false, erro: error.message }; }
   };
 
-  const adicionarCompra = async (novaCompra) => {
+  const adicionarCompra = async (dados) => {
     try {
-      const res = await fetch(`${API_URL}/compras`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titular: novaCompra.titular,
-          descricao: novaCompra.descricao,
-          valorTotal: parseFloat(novaCompra.valorTotal),
-          parcelaAtual: parseInt(novaCompra.parcelaAtual),
-          quantidadeParcelas: parseInt(novaCompra.quantidadeParcelas),
-          dataCompra: novaCompra.dataCompra,
-          cartaoDeCreditoId: parseInt(novaCompra.cartaoDeCreditoId),
-          foiPago: novaCompra.foiPago || false,
-          categoria: novaCompra.categoria || 'Outros'
-        })
-      });
-      if (res.ok) { buscarDados(); return true; }
+      const res = await fetch(`${API_URL}/compras`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(dados) });
+      if (res.ok) { await carregarDados(); return true; }
       return false;
-    } catch (erro) { return false; }
+    } catch (error) { return false; }
   };
 
-  const editarCompra = async (id, dadosAtualizados) => {
+  const editarCompra = async (id, dados) => {
     try {
-      const res = await fetch(`${API_URL}/compras/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dadosAtualizados)
-      });
-      if (res.ok) { buscarDados(); return true; }
+      const res = await fetch(`${API_URL}/compras/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(dados) });
+      if (res.ok) { await carregarDados(); return true; }
       return false;
-    } catch (erro) { return false; }
+    } catch (error) { return false; }
   };
 
   const excluirCompra = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/compras/${id}`, { method: 'DELETE' });
-      if (res.ok) { buscarDados(); return true; }
+      const res = await fetch(`${API_URL}/compras/${id}`, { method: 'DELETE', headers: getHeaders() });
+      if (res.ok) { await carregarDados(); return true; }
       return false;
-    } catch (erro) { return false; }
+    } catch (error) { return false; }
   };
 
-  const comprasPorCartao = useMemo(() => {
-    return comprasCartao.reduce((acc, compra) => {
-      const cartao = compra.cartaoDeCredito || {};
-      const nomeBanco = cartao.nomeBanco || compra.banco || "Desconhecido";
-      const numeroFinal = cartao.numeroFinal || "";
-      const cor = cartao.corHexadecimal || compra.cor || "#64748b";
-      const cartaoId = cartao.id || null;
+  const excluirCartao = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/cartoes/${id}`, { method: 'DELETE', headers: getHeaders() });
+      if (res.ok) { await carregarDados(); return true; }
+      return false;
+    } catch (error) { return false; }
+  };
 
-      const tituloCartao = numeroFinal ? `${nomeBanco} - Final ${numeroFinal}` : nomeBanco;
-
-      if (!acc[tituloCartao]) {
-        acc[tituloCartao] = { 
-            cartaoId: cartaoId, 
-            cor: cor, 
-            diaFechamento: cartao.diaFechamento, 
-            diaPagamento: cartao.diaPagamento,   
-            compras: [] 
-        };
-      }
-      acc[tituloCartao].compras.push(compra);
-      return acc;
-    }, {});
-  }, [comprasCartao]);
-
-  return { comprasCartao, comprasPorCartao, cartoes, gastosFixos, emprestimos, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao };
+  return { comprasCartao, cartoes, comprasPorCartao, carregarDados, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao };
 }
