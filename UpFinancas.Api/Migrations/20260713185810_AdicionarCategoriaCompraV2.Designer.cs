@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using UpFinancas.Api.Data;
 
@@ -11,9 +12,11 @@ using UpFinancas.Api.Data;
 namespace UpFinancas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713185810_AdicionarCategoriaCompraV2")]
+    partial class AdicionarCategoriaCompraV2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -48,14 +51,9 @@ namespace UpFinancas.Api.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int>("UsuarioId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
-
                     b.HasKey("Id");
 
-                    b.ToTable("CartoesDeCredito");
+                    b.ToTable("Cartoes");
                 });
 
             modelBuilder.Entity("UpFinancas.Api.Models.CompraCartao", b =>
@@ -83,9 +81,6 @@ namespace UpFinancas.Api.Migrations
                     b.Property<bool>("FoiPago")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("MesesPagos")
-                        .HasColumnType("longtext");
-
                     b.Property<int>("ParcelaAtual")
                         .HasColumnType("int");
 
@@ -96,11 +91,6 @@ namespace UpFinancas.Api.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int>("UsuarioId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
-
                     b.Property<decimal>("ValorTotal")
                         .HasColumnType("decimal(65,30)");
 
@@ -109,40 +99,6 @@ namespace UpFinancas.Api.Migrations
                     b.HasIndex("CartaoDeCreditoId");
 
                     b.ToTable("ComprasCartao");
-                });
-
-            modelBuilder.Entity("UpFinancas.Api.Models.Usuario", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Senha")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Usuarios");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Email = "bruna@upfinancas.com",
-                            Nome = "Bruna Raquel",
-                            Senha = "$2a$11$t.T2y.9MSJAEPjj1XswVbOOt97JA7AAJxG3.MYObv.aF9YUjS6RBu"
-                        });
                 });
 
             modelBuilder.Entity("UpFinancas.Api.Models.CompraCartao", b =>

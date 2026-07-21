@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using UpFinancas.Api.Data; 
-using UpFinancas.Api.Models; 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using UpFinancas.Api.Data;
+using UpFinancas.Api.Models;
 
 namespace UpFinancas.Api.Controllers
 {
+    [Authorize]
     [ApiController]
-    [Route("api/[controller]")] // O .NET transforma isto em "api/cartoes"
+    [Route("api/[controller]")]
     public class CartoesController : ControllerBase
     {
         private readonly AppDbContext _db;
@@ -16,31 +19,37 @@ namespace UpFinancas.Api.Controllers
             _db = db;
         }
 
-        // GET: api/cartoes
+        private int ObterIdUsuarioLogado()
+        {
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.Parse(claimId!);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetCartoes()
         {
-            var cartoes = await _db.Cartoes.ToListAsync();
+            var cartoes = await _db.CartoesDeCredito
+                                   .Where(c => c.UsuarioId == ObterIdUsuarioLogado())
+                                   .ToListAsync();
             return Ok(cartoes);
         }
 
-        // POST: api/cartoes
         [HttpPost]
         public async Task<IActionResult> AdicionarCartao([FromBody] CartaoDeCredito cartao)
         {
-            _db.Cartoes.Add(cartao);
+            cartao.UsuarioId = ObterIdUsuarioLogado();
+            _db.CartoesDeCredito.Add(cartao);
             await _db.SaveChangesAsync();
             return Ok(cartao);
         }
 
-        // DELETE: api/cartoes/{id}
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> ExcluirCartao(int id)
         {
-            var cartao = await _db.Cartoes.FindAsync(id);
-            if (cartao is null) return NotFound("Cartão não encontrado.");
+            var cartao = await _db.CartoesDeCredito.FirstOrDefaultAsync(c => c.Id == id && c.UsuarioId == ObterIdUsuarioLogado());
+            if (cartao is null) return NotFound();
 
-            _db.Cartoes.Remove(cartao);
+            _db.CartoesDeCredito.Remove(cartao);
             await _db.SaveChangesAsync();
             return Ok();
         }

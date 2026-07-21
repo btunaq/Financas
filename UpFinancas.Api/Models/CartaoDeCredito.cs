@@ -1,15 +1,19 @@
-namespace UpFinancas.Api.Models;
+using System.Text.Json.Serialization;
 
-public class CartaoDeCredito
+namespace UpFinancas.Api.Models
 {
-    public int Id { get; set; }
-    public string NomeBanco { get; set; } = string.Empty;
-    public string CorHexadecimal { get; set; } = string.Empty;
+    public class CartaoDeCredito
+    {
+        public int Id { get; set; }
+        public string NomeBanco { get; set; } = string.Empty;
+        public string CorHexadecimal { get; set; } = string.Empty;
+        public string NumeroFinal { get; set; } = string.Empty;
+        public int DiaFechamento { get; set; }
+        public int DiaPagamento { get; set; }
 
-    public string NumeroFinal { get; set; } = string.Empty;
+        public int UsuarioId { get; set; } = 1;
 
-    public int DiaFechamento { get; set; }
-    public int DiaPagamento { get; set; }
-
-    public List<CompraCartao> Compras { get; set; } = new();
+        [JsonIgnore]
+        public List<CompraCartao> Compras { get; set; } = new();
+    }
 }

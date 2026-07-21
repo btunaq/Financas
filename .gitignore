@@ -482,3 +482,39 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# =========================
+# BANCO DE DADOS (DOCKER)
+# =========================
+# IMPORTANTÍSSIMO: Impede que os teus dados reais ou os do banco do Docker subam para o GitHub!
+db_data/
+mysql/
+*.mdf
+*.ldf
+*.ndf
+
+# =========================
+# REACT / NODE.JS
+# =========================
+node_modules/
+dist/
+build/
+npm-debug.log
+.env
+.env.local
+
+# =========================
+# C# / .NET
+# =========================
+bin/
+obj/
+.vs/
+*.user
+appsettings.Development.json
+TestResults/
+
+# =========================
+# SISTEMAS OPERACIONAIS
+# =========================
+.DS_Store
+Thumbs.db
