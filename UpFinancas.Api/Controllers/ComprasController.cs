@@ -30,6 +30,7 @@ namespace UpFinancas.Api.Controllers
                     c.DataCompra,
                     c.FoiPago,
                     c.Categoria,
+                    c.MesesPagos, // <-- ADICIONADO AQUI: O React precisa receber isto!
                     c.CartaoDeCreditoId,
                     CartaoDeCredito = c.CartaoDeCredito != null ? new {
                         c.CartaoDeCredito.Id,
@@ -68,6 +69,7 @@ namespace UpFinancas.Api.Controllers
             compra.CartaoDeCreditoId = dados.CartaoDeCreditoId;
             compra.FoiPago = dados.FoiPago;
             compra.Categoria = dados.Categoria;
+            compra.MesesPagos = dados.MesesPagos; // <-- Agora isto vai funcionar perfeitamente
 
             await _db.SaveChangesAsync();
             return Ok(compra);
@@ -85,9 +87,10 @@ namespace UpFinancas.Api.Controllers
         }
     }
 
+    // <-- ADICIONADO: "string? MesesPagos" no final dos parâmetros!
     public record CompraAtualizadaDto(
         string Titular, string Descricao, decimal ValorTotal, 
         int ParcelaAtual, int QuantidadeParcelas, DateTime DataCompra, 
-        int CartaoDeCreditoId, bool FoiPago, string Categoria
+        int CartaoDeCreditoId, bool FoiPago, string Categoria, string? MesesPagos
     );
 }

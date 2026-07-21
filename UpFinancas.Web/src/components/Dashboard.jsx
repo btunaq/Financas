@@ -3,26 +3,25 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 
 export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
   
-  // =========================================================
-  // FUNÇÃO DE INTELIGÊNCIA TEMPORAL CORRIGIDA (IGUAL AOS CARTÕES)
-  // =========================================================
   const obterInfoParcela = (compra, dataAlvo) => {
     if (!compra.dataCompra) return { ativa: false };
     const dtCompra = new Date(compra.dataCompra);
     const diferencaMeses = (dataAlvo.getFullYear() - dtCompra.getFullYear()) * 12 + (dataAlvo.getMonth() - dtCompra.getMonth());
     const totalParc = compra.quantidadeParcelas !== undefined ? compra.quantidadeParcelas : (compra.parcelas || 1);
 
-    if (totalParc === 0) return { ativa: diferencaMeses >= 0, totalParc: 1 };
+    const chaveMes = `${dataAlvo.getFullYear()}-${String(dataAlvo.getMonth() + 1).padStart(2, '0')}`;
+    const isPago = (compra.mesesPagos || "").includes(chaveMes);
+
+    if (totalParc === 0) return { ativa: diferencaMeses >= 0, totalParc: 1, isPago };
     
     const pAtualCalculada = (compra.parcelaAtual != null ? compra.parcelaAtual : 1) + diferencaMeses;
 
     if (pAtualCalculada >= 1 && pAtualCalculada <= totalParc) {
-      return { ativa: true, totalParc };
+      return { ativa: true, totalParc, isPago };
     }
     return { ativa: false };
   };
 
-  // 1. LÓGICA DO GRÁFICO DE BARRAS (FATURA POR CARTÃO)
   const dadosFaturaCartao = useMemo(() => {
     const agrupado = {};
     cartoes.forEach(c => {
@@ -32,7 +31,7 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
 
     comprasCartao.forEach(compra => {
       const info = obterInfoParcela(compra, dataFoco);
-      if (info.ativa && !compra.foiPago && compra.cartaoDeCreditoId) {
+      if (info.ativa && !info.isPago && compra.cartaoDeCreditoId) {
         const idCartao = compra.cartaoDeCreditoId;
         const valorParcela = (compra.valorTotal || compra.valor) / info.totalParc;
         if (agrupado[idCartao]) agrupado[idCartao].total += valorParcela;
@@ -42,11 +41,10 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
     return Object.values(agrupado).filter(d => d.total > 0);
   }, [comprasCartao, cartoes, dataFoco]);
 
-  // 2. LÓGICA DO GRÁFICO DE PIZZA (DISTRIBUIÇÃO POR CATEGORIA)
   const dadosCategorias = useMemo(() => {
     const somaCategorias = comprasCartao.reduce((acc, compra) => {
       const info = obterInfoParcela(compra, dataFoco);
-      if (!info.ativa || compra.foiPago) return acc; 
+      if (!info.ativa || info.isPago) return acc; 
 
       const categoria = compra.categoria || 'Outros';
       const valorParcela = (compra.valorTotal || compra.valor) / info.totalParc;
@@ -65,16 +63,12 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
       .sort((a, b) => b.value - a.value); 
   }, [comprasCartao, dataFoco]);
 
-  // =========================================================
-  // NOVO: LÓGICA DO TOP DEVEDORES (SOMANDO TODOS OS CARTÕES)
-  // =========================================================
   const rankingDevedores = useMemo(() => {
     const agrupadoDevedores = {};
 
     comprasCartao.forEach(compra => {
       const info = obterInfoParcela(compra, dataFoco);
-      // Só soma se a compra pertencer ao mês e se ainda não foi paga
-      if (info.ativa && !compra.foiPago) {
+      if (info.ativa && !info.isPago) {
         let nomeFormatado = compra.titular ? compra.titular.trim().toLowerCase() : 'desconhecido';
         nomeFormatado = nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1);
 
@@ -83,15 +77,12 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
       }
     });
 
-    // Converte o objeto para um Array e ordena do maior valor para o menor
     return Object.entries(agrupadoDevedores)
       .map(([nome, valor]) => ({ nome, valor }))
       .sort((a, b) => b.valor - a.valor);
   }, [comprasCartao, dataFoco]);
 
-  // Valor máximo do devedor número 1 (usado para basear a largura percentual da barra)
   const maiorDividaDoMes = rankingDevedores[0]?.valor || 1;
-
   const totalCartoes = dadosFaturaCartao.reduce((acc, c) => acc + c.total, 0);
 
   return (
@@ -101,7 +92,6 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
         <p className="text-slate-500 font-medium">Visão Geral das Faturas Atuais</p>
       </div>
 
-      {/* CARDS SUPERIORES */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
@@ -118,7 +108,6 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><div className="flex justify-between mb-4"><span className="text-slate-500 font-semibold text-sm">Total Geral Previsto</span><div className="p-2 bg-slate-100 text-slate-600 rounded-lg">📈</div></div><h3 className="text-3xl font-black text-slate-800">R$ {totalCartoes.toFixed(2)}</h3></div>
       </div>
 
-      {/* ÁREA DOS DOIS GRÁFICOS ORIGINAIS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-1">Distribuição do Débito (Cartões)</h3>
@@ -175,9 +164,6 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* NOVO PAINEL: RANKING DE QUEM DEVE MAIS (TODOS OS CARTÕES) */}
-      {/* ========================================================= */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mt-6">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-slate-800">🏆 Ranking de Gastos por Titular</h3>
@@ -191,18 +177,13 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
         ) : (
           <div className="space-y-4 mt-6">
             {rankingDevedores.map((devedor, index) => {
-              // Calcula a porcentagem que a dívida dele representa comparada ao devedor número 1
               const percentualBarra = (devedor.valor / maiorDividaDoMes) * 100;
-              
-              // Cores especiais para destacar o Top 1, 2 e 3
               const medalhas = ["🥇", "🥈", "🥉"];
               const coresBarras = ["bg-rose-500", "bg-indigo-600", "bg-amber-500"];
               const corBarraAtual = coresBarras[index] || "bg-slate-400";
 
               return (
                 <div key={devedor.nome} className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-50 pb-3 last:border-none">
-                  
-                  {/* Nome e Medalha */}
                   <div className="w-full md:w-1/4 flex items-center gap-2">
                     <span className="text-base">{medalhas[index] || "👤"}</span>
                     <span className="font-bold text-slate-700 text-sm">{devedor.nome}</span>
@@ -212,29 +193,23 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
                       </span>
                     )}
                   </div>
-
-                  {/* Barra Progressiva Estilizada */}
                   <div className="flex-1 bg-slate-100 h-3 rounded-full overflow-hidden relative">
                     <div 
                       className={`h-full ${corBarraAtual} rounded-full transition-all duration-500`}
                       style={{ width: `${percentualBarra}%` }}
                     />
                   </div>
-
-                  {/* Valor Total Devido */}
                   <div className="w-full md:w-1/4 text-left md:text-right pl-0 md:pl-4">
                     <span className="font-black text-slate-800 text-sm">
                       R$ {devedor.valor.toFixed(2)}
                     </span>
                   </div>
-
                 </div>
               );
             })}
           </div>
         )}
       </div>
-
     </div>
   );
 }

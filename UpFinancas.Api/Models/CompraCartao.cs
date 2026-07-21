@@ -13,6 +13,8 @@ namespace UpFinancas.Api.Models
         public DateTime DataCompra { get; set; }
         public bool FoiPago { get; set; } = false;
         public string Categoria { get; set; } = "Outros";
+
+        public string? MesesPagos { get; set; } = "";
         
         public int CartaoDeCreditoId { get; set; }
         
