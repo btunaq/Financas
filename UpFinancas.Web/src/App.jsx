@@ -5,13 +5,12 @@ import SecaoCartoes from './components/SecaoCartoes';
 import Auth from './components/Auth'; 
 
 export default function App() {
-  // 1. TODOS OS HOOKS FICAM AQUI NO TOPO (Regra de Ouro do React)
   const [usuarioLogado, setUsuarioLogado] = useState(() => {
     const salvo = localStorage.getItem('upfinancas_user');
     return salvo ? JSON.parse(salvo) : null;
   });
 
-  const [abaAtiva, setAbaAtiva] = useState('dashboard');
+  const [abaAtiva, setAbaAtiva] = useState('cartoes');
   const [dataFoco, setDataFoco] = useState(new Date());
   
   const { 
@@ -19,7 +18,6 @@ export default function App() {
     adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao 
   } = useFinancas();
 
-  // 2. FUNÇÕES COMUNS
   const handleLogout = () => {
     localStorage.removeItem('upfinancas_user');
     localStorage.removeItem('upfinancas_token'); 
@@ -31,7 +29,6 @@ export default function App() {
     setDataFoco(prev => new Date(prev.getFullYear(), prev.getMonth() + quantidade, 1));
   };
 
-  // 3. SÓ AGORA (depois de todos os hooks) PODEMOS TER O RETURN CONDICIONAL!
   if (!usuarioLogado) {
     return <Auth onLogin={(user, token) => {
       localStorage.setItem('upfinancas_user', JSON.stringify(user));
@@ -40,7 +37,6 @@ export default function App() {
     }} />;
   }
 
-  // 4. O ECRÃ PRINCIPAL
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
       <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
@@ -52,19 +48,25 @@ export default function App() {
           </div>
           
           <nav className="flex gap-2">
-            <button onClick={() => setAbaAtiva('dashboard')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'dashboard' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>📊 Dashboard</button>
-            <button onClick={() => setAbaAtiva('cartoes')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'cartoes' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>💳 Cartões</button>
-            <button onClick={() => setAbaAtiva('gastos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'gastos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>🏠 Gastos da Casa</button>
-            <button onClick={() => setAbaAtiva('emprestimos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'emprestimos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>🏛️ Empréstimos</button>
+            <button onClick={() => setAbaAtiva('dashboard')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'dashboard' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Dashboard</button>
+            <button onClick={() => setAbaAtiva('cartoes')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'cartoes' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Cartões</button>
+            <button onClick={() => setAbaAtiva('gastos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'gastos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Gastos da Casa</button>
+            <button onClick={() => setAbaAtiva('emprestimos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'emprestimos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Empréstimos</button>
           </nav>
           
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl font-black text-sm shadow-sm select-none">
-              <button onClick={() => alterarMes(-1)} className="hover:text-indigo-900 transition-colors px-1 text-base">◀</button>
-              <span className="uppercase tracking-wider min-w-[110px] text-center">
+            
+            {/* COMPONENTE DE MESES ATUALIZADO SEM EMOJIS */}
+            <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-2 py-1.5 rounded-xl font-black text-sm shadow-sm select-none">
+              <button onClick={() => alterarMes(-1)} className="hover:text-indigo-900 hover:bg-indigo-100 transition-colors p-1.5 rounded-lg flex items-center justify-center">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+              </button>
+              <span className="uppercase tracking-wider min-w-[120px] text-center">
                 {dataFoco.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
               </span>
-              <button onClick={() => alterarMes(1)} className="hover:text-indigo-900 transition-colors px-1 text-base">▶</button>
+              <button onClick={() => alterarMes(1)} className="hover:text-indigo-900 hover:bg-indigo-100 transition-colors p-1.5 rounded-lg flex items-center justify-center">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+              </button>
             </div>
 
             <div className="flex items-center gap-3 border-l pl-6 border-slate-200">
