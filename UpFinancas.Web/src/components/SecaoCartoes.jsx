@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
-// --- ÍCONES PREMIUM (SVG) ---
 const IconPencil = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.112l-2.051.683a.75.75 0 01-.955-.955l.683-2.051a4.5 4.5 0 011.112-1.89l13.438-13.438zM16.862 4.487L19.5 7.125" /></svg>;
 const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>;
 const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>;
 const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 const IconCard = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>;
+const IconAlert = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" /></svg>;
 
-export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, dataFoco }) {
+export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, dataFoco, dataSimulada }) {
   const [vista, setVista] = useState('lista');
 
   const [compraEmExclusao, setCompraEmExclusao] = useState(null);
@@ -41,6 +41,8 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
 
   const [filtrosTitular, setFiltrosTitular] = useState({});
 
+  const mesNomes = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
   const obterInfoParcela = (compra, dataAlvo, diaFechamento) => {
     if (!compra.dataCompra) return { ativa: false };
 
@@ -51,7 +53,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
 
     let dataBaseCompra = new Date(anoCompra, mesCompra, 1);
     
-    const fechamento = diaFechamento || 31;
+    const fechamento = parseInt(diaFechamento) || 31;
     if (diaCompra > fechamento) {
       dataBaseCompra.setMonth(dataBaseCompra.getMonth() + 1);
     }
@@ -168,6 +170,17 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
       }));
     } catch (error) { alert("Erro ao reverter para pendente."); }
     setPendenteEmConfirmacao(null);
+  };
+
+  const pagarFaturaPassada = async (itensAtrasados) => {
+    try {
+      await Promise.all(itensAtrasados.map(item => {
+        if(!item.info.isPago) {
+            const novosMeses = item.original.mesesPagos ? `${item.original.mesesPagos},${item.info.chaveMes}` : item.info.chaveMes;
+            return editarCompra(item.original.id, { ...item.original, mesesPagos: novosMeses });
+        }
+      }));
+    } catch (error) { alert("Erro ao quitar fatura antiga."); }
   };
 
   const handleCompraSubmit = async (e) => {
@@ -289,7 +302,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
           <div>
             <label className="block text-sm font-bold text-slate-600 mb-2">Categoria</label>
             <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-700">
-              {/* EMOJIS REMOVIDOS AQUI TAMBÉM */}
               <option value="Supermercado / Feira">Supermercado / Feira</option>
               <option value="Alimentação / Fast Food">Alimentação / Fast Food</option>
               <option value="Roupas / Moda">Roupas / Moda</option>
@@ -385,7 +397,8 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
           <p className="text-slate-400 font-bold text-lg mb-2">Nenhuma movimentação identificada</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 lg:grid-cols-2 gap-6">
+        /* GRID DE 2 COLUNAS PARA DEIXAR OS TITULARES LARGOS E ESPAÇOSOS */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {Object.entries(comprasPorCartao).map(([tituloCartao, dados]) => {
             
             const partesTitulo = tituloCartao.split(' - Final ');
@@ -402,9 +415,11 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
             };
 
             const filtroAtivo = filtrosTitular[tituloCartao];
+            const fechamentoCartao = parseInt(dados.diaFechamento) || 31;
+            const vencimentoCartao = parseInt(dados.diaPagamento) || 1;
             
             const comprasAtivasMapeadas = dados.compras
-              .map(c => ({ original: c, info: obterInfoParcela(c, dataFoco, dados.diaFechamento) }))
+              .map(c => ({ original: c, info: obterInfoParcela(c, dataFoco, fechamentoCartao) }))
               .filter(item => item.info.ativa);
 
             const totalFaturaMes = comprasAtivasMapeadas.reduce((acc, item) => {
@@ -438,13 +453,51 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
             const temComprasPendentesNaTabela = comprasFiltradas.some(item => !item.info.isPago);
             const temComprasPagasNaTabela = comprasFiltradas.some(item => item.info.isPago);
 
-            // --- INTELIGÊNCIA DE DATAS E STATUS RIGOROSA ---
-            const hoje = new Date();
+            const faturasAtrasadas = [];
+            const hoje = dataSimulada ? new Date(dataSimulada + 'T00:00:00') : new Date();
             hoje.setHours(0,0,0,0);
-            const dataVenc = new Date(dataFoco.getFullYear(), dataFoco.getMonth(), dados.diaPagamento || 1);
-            const dataFech = new Date(dataFoco.getFullYear(), dataFoco.getMonth(), dados.diaFechamento || 31);
             
-            const mesNomes = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+            if (dados.compras && dados.compras.length > 0) {
+                let oldestDate = new Date();
+                dados.compras.forEach(c => {
+                    if (c.dataCompra) {
+                        const d = new Date(c.dataCompra.split('T')[0]);
+                        if (d < oldestDate) oldestDate = d;
+                    }
+                });
+                
+                let dataCheck = new Date(oldestDate.getFullYear(), oldestDate.getMonth(), 1);
+                const dataLimite = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+                
+                while (dataCheck < dataLimite) {
+                    const checkVenc = new Date(dataCheck.getFullYear(), dataCheck.getMonth(), vencimentoCartao);
+                    
+                    if (hoje > checkVenc) {
+                        const itensNesteMes = dados.compras.map(c => ({
+                            original: c,
+                            info: obterInfoParcela(c, dataCheck, fechamentoCartao)
+                        })).filter(item => item.info.ativa);
+                        
+                        const temNaoPago = itensNesteMes.some(item => !item.info.isPago);
+                        
+                        if (temNaoPago) {
+                            faturasAtrasadas.push({
+                                nome: mesNomes[dataCheck.getMonth()],
+                                ano: dataCheck.getFullYear(),
+                                itens: itensNesteMes,
+                                chave: `${dataCheck.getFullYear()}-${dataCheck.getMonth()}`
+                            });
+                        }
+                    }
+                    dataCheck.setMonth(dataCheck.getMonth() + 1);
+                }
+            }
+
+            const faturasAtrasadasFiltradas = faturasAtrasadas.filter(f => f.chave !== `${dataFoco.getFullYear()}-${dataFoco.getMonth()}`);
+
+            const dataVenc = new Date(dataFoco.getFullYear(), dataFoco.getMonth(), vencimentoCartao);
+            const dataFech = new Date(dataFoco.getFullYear(), dataFoco.getMonth(), fechamentoCartao);
+            
             const strMes = mesNomes[dataFoco.getMonth()];
 
             let statusFatura = 'ABERTA';
@@ -467,6 +520,24 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
             return (
               <div key={tituloCartao} className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative" style={{ borderLeft: `6px solid ${dados.cor}`, height: '500px' }}>
                 
+                {faturasAtrasadasFiltradas.length > 0 && (
+                    <div className="flex flex-col w-full">
+                        {faturasAtrasadasFiltradas.map(fat => (
+                            <div key={fat.chave} className="bg-rose-500 text-white px-5 py-2.5 flex justify-between items-center text-[10px] font-black uppercase tracking-wider shrink-0">
+                                <span className="flex items-center gap-2">
+                                    <IconAlert /> FATURA DE {fat.nome} / {fat.ano} ATRASADA
+                                </span>
+                                <button 
+                                    onClick={() => pagarFaturaPassada(fat.itens)}
+                                    className="bg-white text-rose-600 px-3 py-1 rounded shadow-sm hover:bg-rose-50 transition-colors font-black"
+                                >
+                                    PAGAR
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 <div className="px-5 py-4 flex flex-row items-start justify-between border-b border-slate-100 gap-4 shrink-0 bg-white z-20">
                   <div className="flex flex-col gap-2 min-w-[150px]">
                     <div>
@@ -526,28 +597,28 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                     </div>
                   </div>
                   
+                  {/* ÁREA DOS TITULARES MAIS LARGA (2 COLUNAS DE CARTÕES) */}
                   <div className="flex-1 border-l border-slate-100/50 pl-4">
-                    {/* AQUI ESTÁ O GRID MUDADO PARA 3 COLUNAS */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {Object.entries(totaisPorTitular).map(([nome, valor]) => {
                         const isSelecionado = filtroAtivo === nome;
                         return (
                           <div 
                             key={nome} 
                             onClick={() => toggleFiltro(nome)}
-                            className={`flex flex-col justify-center px-2 py-1.5 rounded-md border shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 ${
+                            className={`flex justify-between items-center px-3 py-2 rounded-lg border shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 ${
                               isSelecionado ? '' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                             }`}
                             style={isSelecionado ? { backgroundColor: dados.cor, borderColor: dados.cor } : {}}
                             title={isSelecionado ? "Clique para limpar o filtro" : `Clique para ver apenas os gastos de ${nome}`}
                           >
-                            <span className={`text-[9px] font-bold uppercase truncate ${isSelecionado ? 'text-white opacity-90' : 'text-slate-500'}`}>{nome}</span>
-                            <span className={`text-xs font-black truncate ${isSelecionado ? 'text-white' : 'text-slate-800'}`}>R$ {valor.toFixed(2)}</span>
+                            <span className={`text-[10px] font-bold uppercase truncate mr-2 ${isSelecionado ? 'text-white opacity-90' : 'text-slate-600'}`}>{nome}</span>
+                            <span className={`text-xs font-black whitespace-nowrap ${isSelecionado ? 'text-white' : 'text-slate-800'}`}>R$ {valor.toFixed(2)}</span>
                           </div>
                         );
                       })}
                       {Object.keys(totaisPorTitular).length === 0 && (
-                        <span className="text-xs text-slate-400 font-medium italic col-span-3">Nenhuma compra ativa</span>
+                        <span className="text-xs text-slate-400 font-medium italic col-span-2">Nenhuma compra ativa</span>
                       )}
                     </div>
                   </div>

@@ -13,6 +13,12 @@ export default function App() {
   const [abaAtiva, setAbaAtiva] = useState('cartoes');
   const [dataFoco, setDataFoco] = useState(new Date());
   
+  // ESTADO PARA O DIA ATUAL / SIMULAÇÃO
+  const [dataSimulada, setDataSimulada] = useState(() => {
+    const hoje = new Date();
+    return hoje.toISOString().split('T')[0];
+  });
+  
   const { 
     comprasCartao, comprasPorCartao, cartoes, 
     adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao 
@@ -54,9 +60,20 @@ export default function App() {
             <button onClick={() => setAbaAtiva('emprestimos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'emprestimos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Empréstimos</button>
           </nav>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             
-            {/* COMPONENTE DE MESES ATUALIZADO SEM EMOJIS */}
+            {/* SELETOR DE DIA REAL / SIMULADO */}
+            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+               <span className="text-[10px] font-bold text-slate-500 uppercase">Dia Atual:</span>
+               <input 
+                  type="date" 
+                  value={dataSimulada} 
+                  onChange={e => setDataSimulada(e.target.value)} 
+                  className="bg-white text-xs font-bold text-indigo-600 px-2 py-1 rounded border border-slate-200 outline-none"
+                  title="Altere esta data para testar o sistema como se fosse hoje"
+               />
+            </div>
+
             <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-2 py-1.5 rounded-xl font-black text-sm shadow-sm select-none">
               <button onClick={() => alterarMes(-1)} className="hover:text-indigo-900 hover:bg-indigo-100 transition-colors p-1.5 rounded-lg flex items-center justify-center">
                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
@@ -69,7 +86,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="flex items-center gap-3 border-l pl-6 border-slate-200">
+            <div className="flex items-center gap-3 border-l pl-4 border-slate-200">
                <div className="flex flex-col items-end">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Logado como</span>
                   <span className="text-sm font-black text-indigo-600 leading-tight">{usuarioLogado.nome}</span>
@@ -85,7 +102,7 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {abaAtiva === 'dashboard' && <Dashboard comprasCartao={comprasCartao} cartoes={cartoes} dataFoco={dataFoco} />}
-        {abaAtiva === 'cartoes' && <SecaoCartoes comprasPorCartao={comprasPorCartao} cartoes={cartoes} adicionarCartao={adicionarCartao} adicionarCompra={adicionarCompra} editarCompra={editarCompra} excluirCompra={excluirCompra} excluirCartao={excluirCartao} dataFoco={dataFoco} />}
+        {abaAtiva === 'cartoes' && <SecaoCartoes comprasPorCartao={comprasPorCartao} cartoes={cartoes} adicionarCartao={adicionarCartao} adicionarCompra={adicionarCompra} editarCompra={editarCompra} excluirCompra={excluirCompra} excluirCartao={excluirCartao} dataFoco={dataFoco} dataSimulada={dataSimulada} />}
         {abaAtiva === 'gastos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Gastos da Casa</p></div>}
         {abaAtiva === 'emprestimos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Empréstimos</p></div>}
       </main>
