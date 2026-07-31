@@ -16,7 +16,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
   const [compraEditandoId, setCompraEditandoId] = useState(null);
   const [foiPagoEdicao, setFoiPagoEdicao] = useState(false);
 
-  // NOVO ESTADO PARA CONTROLAR A EDIÇÃO DO CARTÃO
   const [cartaoEditandoId, setCartaoEditandoId] = useState(null);
 
   const [pagamentoEmConfirmacao, setPagamentoEmConfirmacao] = useState(null);
@@ -236,9 +235,12 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
 
     let sucesso = compraEditandoId ? await editarCompra(compraEditandoId, dados) : await adicionarCompra(dados);
     if (sucesso) fecharFormulario();
-    else alert("Erro ao gravar.");
+    else alert("Erro ao gravar compra.");
   };
 
+  // ----------------------------------------------------
+  // NOVA FUNÇÃO MELHORADA PARA SUBMETER E EDITAR CARTÕES
+  // ----------------------------------------------------
   const handleCartaoSubmit = async (e) => {
     e.preventDefault();
     const dadosCartao = { 
@@ -250,14 +252,26 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     };
 
     let sucesso;
+    
     if (cartaoEditandoId) {
-      sucesso = editarCartao ? await editarCartao(cartaoEditandoId, dadosCartao) : false;
+      // ESTAMOS NO MODO DE EDIÇÃO
+      if (!editarCartao) {
+         alert("Erro: A função 'editarCartao' não foi passada para este componente! Verifica o ficheiro useFinancas.js.");
+         return;
+      }
+      
+      sucesso = await editarCartao(cartaoEditandoId, dadosCartao);
+      if (!sucesso) {
+          alert("Ocorreu um erro ao tentar salvar a edição no banco de dados.");
+      }
     } else {
+      // ESTAMOS NO MODO DE CRIAÇÃO
       const resultado = await adicionarCartao(dadosCartao);
       sucesso = typeof resultado === 'object' ? resultado.sucesso : resultado;
       if (!sucesso && resultado?.erro) alert(resultado.erro);
     }
 
+    // SE TUDO CORREU BEM, LIMPA O FORMULÁRIO E FECHA A TELA
     if (sucesso !== false) { 
       setNomeBanco(''); setNumeroFinal(''); setCorHexadecimal('#8A05BE'); setDiaFechamento(''); setDiaPagamento(''); 
       setCartaoEditandoId(null);
@@ -435,7 +449,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
             const nomeDoBanco = partesTitulo[0];
             const numFinal = partesTitulo.length > 1 ? `Final ${partesTitulo[1]}` : '';
 
-            // Localiza o objeto de cartão completo na lista de cartões para edição
             const cartaoObj = cartoes.find(c => c.id === dados.cartaoId) || {
               id: dados.cartaoId,
               nomeBanco: nomeDoBanco,
@@ -662,7 +675,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                     </div>
                   </div>
 
-                  {/* BOTÕES DE EDITAR E EXCLUIR O CARTÃO */}
                   <div className="flex items-center gap-2 pl-2">
                     {dados.cartaoId && (
                       <>
