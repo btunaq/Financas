@@ -21,7 +21,7 @@ export default function App() {
   
   const { 
     comprasCartao, comprasPorCartao, cartoes, 
-    adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao 
+    adicionarCartao, editarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao 
   } = useFinancas();
 
   const handleLogout = () => {
@@ -102,7 +102,20 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {abaAtiva === 'dashboard' && <Dashboard comprasCartao={comprasCartao} cartoes={cartoes} dataFoco={dataFoco} />}
-        {abaAtiva === 'cartoes' && <SecaoCartoes comprasPorCartao={comprasPorCartao} cartoes={cartoes} adicionarCartao={adicionarCartao} adicionarCompra={adicionarCompra} editarCompra={editarCompra} excluirCompra={excluirCompra} excluirCartao={excluirCartao} dataFoco={dataFoco} dataSimulada={dataSimulada} />}
+        {abaAtiva === 'cartoes' && (
+          <SecaoCartoes 
+            comprasPorCartao={comprasPorCartao} 
+            cartoes={cartoes} 
+            adicionarCartao={adicionarCartao} 
+            editarCartao={editarCartao}
+            adicionarCompra={adicionarCompra} 
+            editarCompra={editarCompra} 
+            excluirCompra={excluirCompra} 
+            excluirCartao={excluirCartao} 
+            dataFoco={dataFoco} 
+            dataSimulada={dataSimulada} 
+          />
+        )}
         {abaAtiva === 'gastos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Gastos da Casa</p></div>}
         {abaAtiva === 'emprestimos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Empréstimos</p></div>}
       </main>

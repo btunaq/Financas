@@ -7,7 +7,7 @@ const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox=
 const IconCard = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>;
 const IconAlert = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" /></svg>;
 
-export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, dataFoco, dataSimulada }) {
+export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCartao, editarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, dataFoco, dataSimulada }) {
   const [vista, setVista] = useState('lista');
 
   const [compraEmExclusao, setCompraEmExclusao] = useState(null);
@@ -15,6 +15,9 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
   
   const [compraEditandoId, setCompraEditandoId] = useState(null);
   const [foiPagoEdicao, setFoiPagoEdicao] = useState(false);
+
+  // NOVO ESTADO PARA CONTROLAR A EDIÇÃO DO CARTÃO
+  const [cartaoEditandoId, setCartaoEditandoId] = useState(null);
 
   const [pagamentoEmConfirmacao, setPagamentoEmConfirmacao] = useState(null);
   const [pendenteEmConfirmacao, setPendenteEmConfirmacao] = useState(null);
@@ -82,7 +85,24 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     setParcelas(''); setParcelaAtual(1); setCategoria('Alimentação / Fast Food'); 
     setCompraEditandoId(null); setFoiPagoEdicao(false); setMesesPagosForm('');
     setTipoPagamento('parcelado'); setMostrarAntecipacao(false); setQtdAntecipada('');
+    setCartaoEditandoId(null);
     setVista('lista');
+  };
+
+  const abrirNovoFormularioCartao = () => {
+    setNomeBanco(''); setNumeroFinal(''); setCorHexadecimal('#8A05BE'); setDiaFechamento(''); setDiaPagamento('');
+    setCartaoEditandoId(null);
+    setVista('form_cartao');
+  };
+
+  const iniciarEdicaoCartao = (cartaoObj) => {
+    setNomeBanco(cartaoObj.nomeBanco || '');
+    setNumeroFinal(cartaoObj.numeroFinal || '');
+    setCorHexadecimal(cartaoObj.corHexadecimal || '#8A05BE');
+    setDiaFechamento(cartaoObj.diaFechamento || '');
+    setDiaPagamento(cartaoObj.diaPagamento || '');
+    setCartaoEditandoId(cartaoObj.id);
+    setVista('form_cartao');
   };
 
   const abrirNovoFormularioCompra = () => {
@@ -221,25 +241,36 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
 
   const handleCartaoSubmit = async (e) => {
     e.preventDefault();
-    const resultado = await adicionarCartao({ 
-      nomeBanco, corHexadecimal, numeroFinal,
-      diaFechamento: parseInt(diaFechamento), diaPagamento: parseInt(diaPagamento)
-    });
-    const sucesso = typeof resultado === 'object' ? resultado.sucesso : resultado;
-    if (sucesso) { 
-      setNomeBanco(''); setNumeroFinal(''); setCorHexadecimal('#8A05BE'); setDiaFechamento(''); setDiaPagamento(''); 
-      setVista('lista'); 
+    const dadosCartao = { 
+      nomeBanco, 
+      corHexadecimal, 
+      numeroFinal,
+      diaFechamento: parseInt(diaFechamento), 
+      diaPagamento: parseInt(diaPagamento)
+    };
+
+    let sucesso;
+    if (cartaoEditandoId) {
+      sucesso = editarCartao ? await editarCartao(cartaoEditandoId, dadosCartao) : false;
     } else {
-       alert(resultado?.erro || "Erro ao cadastrar cartão.");
+      const resultado = await adicionarCartao(dadosCartao);
+      sucesso = typeof resultado === 'object' ? resultado.sucesso : resultado;
+      if (!sucesso && resultado?.erro) alert(resultado.erro);
+    }
+
+    if (sucesso !== false) { 
+      setNomeBanco(''); setNumeroFinal(''); setCorHexadecimal('#8A05BE'); setDiaFechamento(''); setDiaPagamento(''); 
+      setCartaoEditandoId(null);
+      setVista('lista'); 
     }
   };
 
-  if (vista === 'novo_cartao') {
+  if (vista === 'form_cartao') {
     return (
       <div className="animate-fade-in max-w-xl mx-auto">
         <div className="flex justify-between items-center mb-8 border-b pb-4">
-          <h3 className="text-2xl font-black text-slate-800">Novo Cartão de Crédito</h3>
-          <button onClick={() => setVista('lista')} className="text-slate-500 hover:text-rose-600 font-bold transition-colors">✕ Cancelar</button>
+          <h3 className="text-2xl font-black text-slate-800">{cartaoEditandoId ? 'Editar Cartão de Crédito' : 'Novo Cartão de Crédito'}</h3>
+          <button onClick={fecharFormulario} className="text-slate-500 hover:text-rose-600 font-bold transition-colors">✕ Cancelar</button>
         </div>
         <form onSubmit={handleCartaoSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
@@ -387,7 +418,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
       <div className="flex justify-between items-center mb-8">
         <h3 className="text-lg font-semibold text-slate-500">Resumo de Faturas</h3>
         <div className="flex gap-3">
-          <button onClick={() => setVista('novo_cartao')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 transition-all">+ Novo Cartão</button>
+          <button onClick={abrirNovoFormularioCartao} className="bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 transition-all">+ Novo Cartão</button>
           <button onClick={abrirNovoFormularioCompra} className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-sm transition-all">+ Nova Compra</button>
         </div>
       </div>
@@ -397,13 +428,22 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
           <p className="text-slate-400 font-bold text-lg mb-2">Nenhuma movimentação identificada</p>
         </div>
       ) : (
-        /* GRID DE 2 COLUNAS PARA DEIXAR OS TITULARES LARGOS E ESPAÇOSOS */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {Object.entries(comprasPorCartao).map(([tituloCartao, dados]) => {
             
             const partesTitulo = tituloCartao.split(' - Final ');
             const nomeDoBanco = partesTitulo[0];
             const numFinal = partesTitulo.length > 1 ? `Final ${partesTitulo[1]}` : '';
+
+            // Localiza o objeto de cartão completo na lista de cartões para edição
+            const cartaoObj = cartoes.find(c => c.id === dados.cartaoId) || {
+              id: dados.cartaoId,
+              nomeBanco: nomeDoBanco,
+              numeroFinal: numFinal.replace('Final ', ''),
+              corHexadecimal: dados.cor,
+              diaFechamento: dados.diaFechamento,
+              diaPagamento: dados.diaPagamento
+            };
 
             const toggleFiltro = (nomeSelecionado) => {
               setFiltrosTitular(prev => ({
@@ -569,7 +609,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                             <button onClick={() => confirmarPagamentoLote(dados.cartaoId, comprasAtivasMapeadas, filtroAtivo)} className="text-emerald-700 hover:bg-emerald-100 px-2 py-1 rounded text-[10px] font-black tracking-widest flex items-center gap-1 transition-colors">
                               <IconCheck /> SIM
                             </button>
-                            <button onClick={() => setPagamentoEmConfirmacao(null)} className="text-rose-600 hover:bg-rose-100 px-2 py-1 rounded text-[10px] font-black tracking-widest flex items-center gap-1 transition-colors">
+                            <button onClick={() => setPagamentoEmConfirmacao(null)} className="text-rose-600 hover:bg-rose-100 px-2 py-1 rounded text-[10px] font-black tracking-widest transition-colors">
                               <IconX /> NÃO
                             </button>
                           </div>
@@ -584,7 +624,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                             <button onClick={() => confirmarPendenteLote(dados.cartaoId, comprasAtivasMapeadas, filtroAtivo)} className="text-amber-700 hover:bg-amber-100 px-2 py-1 rounded text-[10px] font-black tracking-widest flex items-center gap-1 transition-colors">
                               <IconCheck /> SIM
                             </button>
-                            <button onClick={() => setPendenteEmConfirmacao(null)} className="text-rose-600 hover:bg-rose-100 px-2 py-1 rounded text-[10px] font-black tracking-widest flex items-center gap-1 transition-colors">
+                            <button onClick={() => setPendenteEmConfirmacao(null)} className="text-rose-600 hover:bg-rose-100 px-2 py-1 rounded text-[10px] font-black tracking-widest transition-colors">
                               <IconX /> NÃO
                             </button>
                           </div>
@@ -597,7 +637,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                     </div>
                   </div>
                   
-                  {/* ÁREA DOS TITULARES MAIS LARGA (2 COLUNAS DE CARTÕES) */}
                   <div className="flex-1 border-l border-slate-100/50 pl-4">
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(totaisPorTitular).map(([nome, valor]) => {
@@ -623,19 +662,26 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                     </div>
                   </div>
 
-                  <div className="flex flex-col justify-start items-end pl-2">
+                  {/* BOTÕES DE EDITAR E EXCLUIR O CARTÃO */}
+                  <div className="flex items-center gap-2 pl-2">
                     {dados.cartaoId && (
-                      cartaoEmExclusao === dados.cartaoId ? (
-                        <div className="flex flex-col items-center gap-1.5 bg-rose-50 p-1.5 rounded border border-rose-200 animate-fade-in shadow-sm">
-                          <span className="text-[10px] font-bold text-rose-600 uppercase text-center leading-tight">Excluir?</span>
-                          <div className="flex gap-1.5">
-                            <button onClick={() => { excluirCartao(dados.cartaoId); setCartaoEmExclusao(null); }} className="bg-rose-600 text-white p-1 rounded hover:bg-rose-700 transition-colors" title="Sim"><IconCheck /></button>
-                            <button onClick={() => setCartaoEmExclusao(null)} className="bg-slate-200 text-slate-600 p-1 rounded hover:bg-slate-300 transition-colors" title="Não"><IconX /></button>
+                      <>
+                        <button onClick={() => iniciarEdicaoCartao(cartaoObj)} className="text-slate-300 hover:text-indigo-600 transition-colors" title="Editar Cartão">
+                          <IconPencil />
+                        </button>
+
+                        {cartaoEmExclusao === dados.cartaoId ? (
+                          <div className="flex flex-col items-center gap-1.5 bg-rose-50 p-1.5 rounded border border-rose-200 animate-fade-in shadow-sm">
+                            <span className="text-[10px] font-bold text-rose-600 uppercase text-center leading-tight">Excluir?</span>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => { excluirCartao(dados.cartaoId); setCartaoEmExclusao(null); }} className="bg-rose-600 text-white p-1 rounded hover:bg-rose-700 transition-colors" title="Sim"><IconCheck /></button>
+                              <button onClick={() => setCartaoEmExclusao(null)} className="bg-slate-200 text-slate-600 p-1 rounded hover:bg-slate-300 transition-colors" title="Não"><IconX /></button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <button onClick={() => setCartaoEmExclusao(dados.cartaoId)} className="text-slate-300 hover:text-rose-500 transition-colors" title="Excluir Cartão"><IconX /></button>
-                      )
+                        ) : (
+                          <button onClick={() => setCartaoEmExclusao(dados.cartaoId)} className="text-slate-300 hover:text-rose-500 transition-colors" title="Excluir Cartão"><IconX /></button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
