@@ -45,7 +45,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
 
   const mesNomes = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
- const obterInfoParcela = (compra, dataAlvo, diaFechamento) => {
+  const obterInfoParcela = (compra, dataAlvo, diaFechamento) => {
     if (!compra.dataCompra) return { ativa: false };
 
     const [anoStr, mesStr, diaStr] = compra.dataCompra.split('T')[0].split('-');
@@ -57,8 +57,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     
     const fechamento = parseInt(diaFechamento) || 31;
     
-    // AQUI ESTÁ A MÁGICA: Mudar de > para >=
-    // Agora o próprio dia do fechamento já cai na fatura do mês seguinte!
+    // LOGICA CORRIGIDA: >= para o próprio dia cair na próxima fatura
     if (diaCompra >= fechamento) {
       dataBaseCompra.setMonth(dataBaseCompra.getMonth() + 1);
     }
@@ -241,9 +240,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     else alert("Erro ao gravar compra.");
   };
 
-  // ----------------------------------------------------
-  // NOVA FUNÇÃO MELHORADA PARA SUBMETER E EDITAR CARTÕES
-  // ----------------------------------------------------
   const handleCartaoSubmit = async (e) => {
     e.preventDefault();
     const dadosCartao = { 
@@ -257,7 +253,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     let sucesso;
     
     if (cartaoEditandoId) {
-      // ESTAMOS NO MODO DE EDIÇÃO
       if (!editarCartao) {
          alert("Erro: A função 'editarCartao' não foi passada para este componente! Verifica o ficheiro useFinancas.js.");
          return;
@@ -268,13 +263,11 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
           alert("Ocorreu um erro ao tentar salvar a edição no banco de dados.");
       }
     } else {
-      // ESTAMOS NO MODO DE CRIAÇÃO
       const resultado = await adicionarCartao(dadosCartao);
       sucesso = typeof resultado === 'object' ? resultado.sucesso : resultado;
       if (!sucesso && resultado?.erro) alert(resultado.erro);
     }
 
-    // SE TUDO CORREU BEM, LIMPA O FORMULÁRIO E FECHA A TELA
     if (sucesso !== false) { 
       setNomeBanco(''); setNumeroFinal(''); setCorHexadecimal('#8A05BE'); setDiaFechamento(''); setDiaPagamento(''); 
       setCartaoEditandoId(null);
@@ -653,8 +646,9 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                     </div>
                   </div>
                   
-                  <div className="flex-1 border-l border-slate-100/50 pl-4">
-                    <div className="grid grid-cols-2 gap-2">
+                  {/* === ADICIONADO: max-h-[130px] overflow-y-auto hide-scroll e pr-1 === */}
+                  <div className="flex-1 border-l border-slate-100/50 pl-4 max-h-[130px] overflow-y-auto hide-scroll">
+                    <div className="grid grid-cols-2 gap-2 pr-1">
                       {Object.entries(totaisPorTitular).map(([nome, valor]) => {
                         const isSelecionado = filtroAtivo === nome;
                         return (
@@ -677,6 +671,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                       )}
                     </div>
                   </div>
+                  {/* === FIM DAS ALTERAÇÕES === */}
 
                   <div className="flex items-center gap-2 pl-2">
                     {dados.cartaoId && (
