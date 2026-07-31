@@ -45,7 +45,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
 
   const mesNomes = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
-  const obterInfoParcela = (compra, dataAlvo, diaFechamento) => {
+ const obterInfoParcela = (compra, dataAlvo, diaFechamento) => {
     if (!compra.dataCompra) return { ativa: false };
 
     const [anoStr, mesStr, diaStr] = compra.dataCompra.split('T')[0].split('-');
@@ -56,7 +56,10 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     let dataBaseCompra = new Date(anoCompra, mesCompra, 1);
     
     const fechamento = parseInt(diaFechamento) || 31;
-    if (diaCompra > fechamento) {
+    
+    // AQUI ESTÁ A MÁGICA: Mudar de > para >=
+    // Agora o próprio dia do fechamento já cai na fatura do mês seguinte!
+    if (diaCompra >= fechamento) {
       dataBaseCompra.setMonth(dataBaseCompra.getMonth() + 1);
     }
 
