@@ -62,9 +62,13 @@ export function useFinancas() {
     }
   }, []);
 
-  useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+ useEffect(() => {
+    const token = localStorage.getItem('upfinancas_token');
+    // Se o token existir (ou seja, o utilizador está logado), carrega os dados imediatamente!
+    if (token) {
+      carregarDados();
+    }
+  }, []);
 
   const adicionarCartao = async (dados) => {
     try {

@@ -24,7 +24,7 @@ services:
     build:
       context: ./UpFinancas.Api 
     container_name: upfinancas_api
-    restart: always
+    #restart: always
     ports:
       - "8080:8080"
     environment:
