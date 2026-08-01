@@ -53,5 +53,33 @@ namespace UpFinancas.Api.Controllers
             await _db.SaveChangesAsync();
             return Ok();
         }
+
+        // ==========================================
+        // NOVA FUNÇÃO DE EDIÇÃO (PUT) ADICIONADA AQUI
+        // ==========================================
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> EditarCartao(int id, [FromBody] CartaoDeCredito cartaoAtualizado)
+        {
+            // 1. Procura o cartão garantindo que pertence ao usuário logado
+            var cartaoExistente = await _db.CartoesDeCredito.FirstOrDefaultAsync(c => c.Id == id && c.UsuarioId == ObterIdUsuarioLogado());
+            
+            if (cartaoExistente is null) 
+            {
+                return NotFound(new { erro = "Cartão não encontrado ou não pertence a este usuário." });
+            }
+
+            // 2. Atualiza os dados com o que veio do React
+            cartaoExistente.NomeBanco = cartaoAtualizado.NomeBanco;
+            cartaoExistente.NumeroFinal = cartaoAtualizado.NumeroFinal;
+            cartaoExistente.CorHexadecimal = cartaoAtualizado.CorHexadecimal;
+            cartaoExistente.DiaFechamento = cartaoAtualizado.DiaFechamento;
+            cartaoExistente.DiaPagamento = cartaoAtualizado.DiaPagamento;
+
+            // 3. Salva no banco de dados
+            _db.CartoesDeCredito.Update(cartaoExistente);
+            await _db.SaveChangesAsync();
+
+            return Ok(cartaoExistente);
+        }
     }
 }

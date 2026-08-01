@@ -62,9 +62,13 @@ export function useFinancas() {
     }
   }, []);
 
-  useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+ useEffect(() => {
+    const token = localStorage.getItem('upfinancas_token');
+    // Se o token existir (ou seja, o utilizador está logado), carrega os dados imediatamente!
+    if (token) {
+      carregarDados();
+    }
+  }, []);
 
   const adicionarCartao = async (dados) => {
     try {
@@ -105,6 +109,36 @@ export function useFinancas() {
       return false;
     } catch (error) { return false; }
   };
+  
+  const editarCartao = async (id, dadosAtualizados) => {
+    try {
+      const token = localStorage.getItem('upfinancas_token');
+      // Atenção à porta! Verifica se estás a usar 8080 no teu ficheiro original
+      const response = await fetch(`http://localhost:8080/api/cartoes/${id}`, {
+        method: 'PUT', // ou PATCH
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(dadosAtualizados)
+      });
 
-  return { comprasCartao, cartoes, comprasPorCartao, carregarDados, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao };
+      if (response.ok) {
+        // Se a edição deu certo, manda o sistema atualizar os dados no ecrã
+        if (typeof carregarDados === 'function') {
+           await carregarDados(); 
+        }
+        return true;
+      } else {
+        const errText = await response.text();
+        console.error("Erro na API ao editar cartão:", errText);
+        return false;
+      }
+    } catch (error) {
+      console.error("Erro de conexão ao editar cartão:", error);
+      return false;
+    }
+  };
+
+  return { comprasCartao, cartoes, comprasPorCartao, carregarDados, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, editarCartao };
 }
