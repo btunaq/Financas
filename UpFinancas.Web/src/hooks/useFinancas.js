@@ -140,5 +140,29 @@ export function useFinancas() {
     }
   };
 
-  return { comprasCartao, cartoes, comprasPorCartao, carregarDados, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, editarCartao };
+  const atualizarPerfil = async (dados) => {
+    try {
+      const token = localStorage.getItem('upfinancas_token');
+      const response = await fetch('http://localhost:8080/api/usuarios/perfil', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(dados)
+      });
+
+      if (response.ok) {
+        const userAtualizado = await response.json();
+        return { sucesso: true, user: userAtualizado };
+      } else {
+        return { sucesso: false, erro: "Não foi possível atualizar." };
+      }
+    } catch (error) {
+      console.error(error);
+      return { sucesso: false, erro: "Erro de conexão." };
+    }
+  };
+
+  return { comprasCartao, cartoes, comprasPorCartao, carregarDados, adicionarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao, editarCartao, atualizarPerfil, carregarDados};
 }

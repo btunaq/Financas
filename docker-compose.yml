@@ -5,7 +5,7 @@ services:
   db:
     image: mysql:8.0
     container_name: upfinancas_db
-    restart: always
+    #restart: always
     environment:
       MYSQL_ROOT_PASSWORD: SenhaSuperSecreta123!
       MYSQL_DATABASE: UpFinancasDB
@@ -38,7 +38,7 @@ services:
     build:
       context: ./UpFinancas.Web 
     container_name: upfinancas_web
-    restart: always
+    #restart: always
     ports:
       - "80:80"
     depends_on:

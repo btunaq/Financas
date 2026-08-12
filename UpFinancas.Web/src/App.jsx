@@ -3,6 +3,7 @@ import { useFinancas } from './hooks/useFinancas';
 import Dashboard from './components/Dashboard';
 import SecaoCartoes from './components/SecaoCartoes';
 import Auth from './components/Auth'; 
+import Perfil from './components/Perfil'; 
 
 export default function App() {
   const [usuarioLogado, setUsuarioLogado] = useState(() => {
@@ -12,12 +13,13 @@ export default function App() {
 
   const [abaAtiva, setAbaAtiva] = useState('cartoes');
   
-  // ESTADO ÚNICO DO TEMPO (Começa sempre no dia de hoje real)
   const [dataMaster, setDataMaster] = useState(new Date());
   
   const { 
     comprasCartao, comprasPorCartao, cartoes, 
-    adicionarCartao, editarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao 
+    adicionarCartao, editarCartao, adicionarCompra, editarCompra, excluirCompra, excluirCartao,
+    atualizarPerfil,
+    carregarDados
   } = useFinancas();
 
   const handleLogout = () => {
@@ -50,13 +52,11 @@ export default function App() {
     }} />;
   }
 
-  // Prepara a string para o input invisível (YYYY-MM-DD)
   const dataFormatadaInput = dataMaster.toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* TRUQUE MÁGICO DE CSS: Faz o ícone do calendário invisível cobrir a palavra inteira */}
       <style>{`
         .date-input-overlay::-webkit-calendar-picker-indicator {
             position: absolute;
@@ -85,29 +85,21 @@ export default function App() {
           </nav>
           
           <div className="flex items-center gap-4">
-            
-            {/* O MÁGICO CONTROLADOR DO TEMPO */}
             <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-2 py-1.5 rounded-xl font-black text-sm shadow-sm select-none">
               <button onClick={() => alterarMes(-1)} className="hover:text-indigo-900 hover:bg-indigo-100 transition-colors p-1.5 rounded-lg flex items-center justify-center">
                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
               </button>
               
-              {/* ÁREA DA DATA COM O INPUT INVISÍVEL POR CIMA */}
               <div className="min-w-[140px] text-center flex justify-center items-center relative overflow-hidden h-8 rounded hover:bg-indigo-100 transition-colors cursor-pointer" title="Clique para escolher um dia específico">
-                
-                {/* Input nativo que abre o calendário. Está 100% transparente! */}
                 <input 
                   type="date" 
                   value={dataFormatadaInput} 
                   onChange={escolherDataExata} 
                   className="date-input-overlay absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
                 />
-                
-                {/* Texto bonito que o utilizador efetivamente vê */}
                 <span className="uppercase tracking-wider pointer-events-none relative z-0">
                   {dataMaster.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ de /g, ' ').replace('.', '')}
                 </span>
-
               </div>
 
               <button onClick={() => alterarMes(1)} className="hover:text-indigo-900 hover:bg-indigo-100 transition-colors p-1.5 rounded-lg flex items-center justify-center">
@@ -116,10 +108,17 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 border-l pl-4 border-slate-200">
-               <div className="flex flex-col items-end">
+               
+               {/* ÁREA DO NOME AGORA É CLICÁVEL E DIRECIIONA PARA O PERFIL */}
+               <div 
+                 onClick={() => setAbaAtiva('perfil')} 
+                 className="flex flex-col items-end cursor-pointer hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
+                 title="Editar configurações da conta"
+               >
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Logado como</span>
                   <span className="text-sm font-black text-indigo-600 leading-tight">{usuarioLogado.nome}</span>
                </div>
+               
                <button onClick={handleLogout} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-lg text-xs font-black transition-colors" title="Sair e fechar a sessão">
                  SAIR
                </button>
@@ -141,13 +140,19 @@ export default function App() {
             editarCompra={editarCompra} 
             excluirCompra={excluirCompra} 
             excluirCartao={excluirCartao} 
-            
             dataFoco={dataMaster} 
             dataSimulada={dataFormatadaInput} 
           />
         )}
         {abaAtiva === 'gastos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Gastos da Casa</p></div>}
         {abaAtiva === 'emprestimos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Empréstimos</p></div>}
+        {abaAtiva === 'perfil' && (
+          <Perfil 
+            usuarioLogado={usuarioLogado} 
+            setUsuarioLogado={setUsuarioLogado} 
+            atualizarPerfil={atualizarPerfil} 
+          />
+        )}
       </main>
     </div>
   );
