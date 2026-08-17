@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useFinancas } from './hooks/useFinancas';
 import Dashboard from './components/Dashboard';
 import SecaoCartoes from './components/SecaoCartoes';
+import SecaoGastos from './components/SecaoGastos'; // <--- Nova Importação
 import Auth from './components/Auth'; 
 import Perfil from './components/Perfil'; 
 
@@ -49,6 +50,7 @@ export default function App() {
       localStorage.setItem('upfinancas_user', JSON.stringify(user));
       localStorage.setItem('upfinancas_token', token); 
       setUsuarioLogado(user);
+      carregarDados(); // Carrega os dados na hora em que faz login
     }} />;
   }
 
@@ -109,7 +111,7 @@ export default function App() {
 
             <div className="flex items-center gap-3 border-l pl-4 border-slate-200">
                
-               {/* ÁREA DO NOME AGORA É CLICÁVEL E DIRECIIONA PARA O PERFIL */}
+               {/* ÁREA DO NOME CLICÁVEL (ABRE O PERFIL) */}
                <div 
                  onClick={() => setAbaAtiva('perfil')} 
                  className="flex flex-col items-end cursor-pointer hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
@@ -130,6 +132,7 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {abaAtiva === 'dashboard' && <Dashboard comprasCartao={comprasCartao} cartoes={cartoes} dataFoco={dataMaster} />}
+        
         {abaAtiva === 'cartoes' && (
           <SecaoCartoes 
             comprasPorCartao={comprasPorCartao} 
@@ -144,8 +147,14 @@ export default function App() {
             dataSimulada={dataFormatadaInput} 
           />
         )}
-        {abaAtiva === 'gastos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Gastos da Casa</p></div>}
+        
+        {/* COMPONENTE DE GASTOS DA CASA ADICIONADO AQUI */}
+        {abaAtiva === 'gastos' && (
+          <SecaoGastos dataFoco={dataMaster} />
+        )}
+        
         {abaAtiva === 'emprestimos' && <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm"><p className="text-slate-400 font-bold text-lg">Módulo de Empréstimos</p></div>}
+        
         {abaAtiva === 'perfil' && (
           <Perfil 
             usuarioLogado={usuarioLogado} 
