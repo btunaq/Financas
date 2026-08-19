@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 
 namespace UpFinancas.Api.Controllers
 {
@@ -60,8 +61,44 @@ namespace UpFinancas.Api.Controllers
             // Devolve o Token e as informações básicas da pessoa (sem a senha, claro)
             return Ok(new { token = tokenString, usuario = new { usuario.Id, usuario.Nome, usuario.Email } });
         }
+
+        // ==========================================
+        // NOVA ROTA PARA ATUALIZAR DADOS (E-mail e Senha)
+        // ==========================================
+        [Authorize]
+        [HttpPut("perfil")]
+        public async Task<IActionResult> AtualizarPerfil([FromBody] AtualizarPerfilDto dto)
+        {
+            // Descobre quem é o utilizador logado pelo Token
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (claimId == null) return Unauthorized();
+            
+            var id = int.Parse(claimId);
+            var usuario = await _db.Usuarios.FindAsync(id);
+
+            if (usuario == null) return NotFound("Usuário não encontrado.");
+
+            // Atualiza o email se foi enviado um novo
+            if (!string.IsNullOrEmpty(dto.Email))
+            {
+                usuario.Email = dto.Email;
+            }
+
+            // Atualiza a senha (com criptografia) se foi enviada uma nova
+            if (!string.IsNullOrEmpty(dto.NovaSenha))
+            {
+                usuario.Senha = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
+            }
+
+            _db.Usuarios.Update(usuario);
+            await _db.SaveChangesAsync();
+
+            // Devolve os dados novos para atualizar a tela
+            return Ok(new { nome = usuario.Nome, email = usuario.Email });
+        }
     }
 
     public record RegistroDto(string Nome, string Email, string Senha);
     public record LoginDto(string Email, string Senha);
+    public record AtualizarPerfilDto(string Email, string? NovaSenha);
 }

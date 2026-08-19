@@ -1,24 +1,40 @@
 import { useMemo } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 
 export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
   
-  const obterInfoParcela = (compra, dataAlvo) => {
+  const obterInfoParcela = (compra, dataAlvo, diaFechamento) => {
     if (!compra.dataCompra) return { ativa: false };
-    const dtCompra = new Date(compra.dataCompra);
-    const diferencaMeses = (dataAlvo.getFullYear() - dtCompra.getFullYear()) * 12 + (dataAlvo.getMonth() - dtCompra.getMonth());
+
+    const [anoStr, mesStr, diaStr] = compra.dataCompra.split('T')[0].split('-');
+    const anoCompra = parseInt(anoStr);
+    const mesCompra = parseInt(mesStr) - 1; 
+    const diaCompra = parseInt(diaStr);
+
+    let dataBaseCompra = new Date(anoCompra, mesCompra, 1);
+    
+    const fechamento = parseInt(diaFechamento) || 31;
+    
+    if (diaCompra >= fechamento) {
+      dataBaseCompra.setMonth(dataBaseCompra.getMonth() + 1);
+    }
+
+    const diferencaMeses = (dataAlvo.getFullYear() - dataBaseCompra.getFullYear()) * 12 + (dataAlvo.getMonth() - dataBaseCompra.getMonth());
     const totalParc = compra.quantidadeParcelas !== undefined ? compra.quantidadeParcelas : (compra.parcelas || 1);
 
     const chaveMes = `${dataAlvo.getFullYear()}-${String(dataAlvo.getMonth() + 1).padStart(2, '0')}`;
     const isPago = (compra.mesesPagos || "").includes(chaveMes);
 
-    if (totalParc === 0) return { ativa: diferencaMeses >= 0, totalParc: 1, isPago };
-    
+    if (totalParc === 0) {
+      return { ativa: diferencaMeses >= 0, txtParcela: 'ASSIN.', isAssinatura: true, totalParc: 1, chaveMes, isPago };
+    }
+
     const pAtualCalculada = (compra.parcelaAtual != null ? compra.parcelaAtual : 1) + diferencaMeses;
 
     if (pAtualCalculada >= 1 && pAtualCalculada <= totalParc) {
-      return { ativa: true, totalParc, isPago };
+      return { ativa: true, txtParcela: `${pAtualCalculada}/${totalParc}`, isAssinatura: false, totalParc, chaveMes, isPago };
     }
+
     return { ativa: false };
   };
 
@@ -30,7 +46,11 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
     });
 
     comprasCartao.forEach(compra => {
-      const info = obterInfoParcela(compra, dataFoco);
+      const cartao = cartoes.find(c => c.id === compra.cartaoDeCreditoId);
+      const diaFechamento = cartao ? cartao.diaFechamento : 31;
+      
+      const info = obterInfoParcela(compra, dataFoco, diaFechamento);
+      
       if (info.ativa && !info.isPago && compra.cartaoDeCreditoId) {
         const idCartao = compra.cartaoDeCreditoId;
         const valorParcela = (compra.valorTotal || compra.valor) / info.totalParc;
@@ -43,7 +63,10 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
 
   const dadosCategorias = useMemo(() => {
     const somaCategorias = comprasCartao.reduce((acc, compra) => {
-      const info = obterInfoParcela(compra, dataFoco);
+      const cartao = cartoes.find(c => c.id === compra.cartaoDeCreditoId);
+      const diaFechamento = cartao ? cartao.diaFechamento : 31;
+      
+      const info = obterInfoParcela(compra, dataFoco, diaFechamento);
       if (!info.ativa || info.isPago) return acc; 
 
       const categoria = compra.categoria || 'Outros';
@@ -61,13 +84,16 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
         color: coresBase[index % coresBase.length]
       }))
       .sort((a, b) => b.value - a.value); 
-  }, [comprasCartao, dataFoco]);
+  }, [comprasCartao, cartoes, dataFoco]);
 
   const rankingDevedores = useMemo(() => {
     const agrupadoDevedores = {};
 
     comprasCartao.forEach(compra => {
-      const info = obterInfoParcela(compra, dataFoco);
+      const cartao = cartoes.find(c => c.id === compra.cartaoDeCreditoId);
+      const diaFechamento = cartao ? cartao.diaFechamento : 31;
+      
+      const info = obterInfoParcela(compra, dataFoco, diaFechamento);
       if (info.ativa && !info.isPago) {
         let nomeFormatado = compra.titular ? compra.titular.trim().toLowerCase() : 'desconhecido';
         nomeFormatado = nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1);
@@ -80,7 +106,7 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
     return Object.entries(agrupadoDevedores)
       .map(([nome, valor]) => ({ nome, valor }))
       .sort((a, b) => b.valor - a.valor);
-  }, [comprasCartao, dataFoco]);
+  }, [comprasCartao, cartoes, dataFoco]);
 
   const maiorDividaDoMes = rankingDevedores[0]?.valor || 1;
   const totalCartoes = dadosFaturaCartao.reduce((acc, c) => acc + c.total, 0);
@@ -149,12 +175,14 @@ export default function Dashboard({ comprasCartao, cartoes, dataFoco }) {
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosFaturaCartao} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={dadosFaturaCartao} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                   <XAxis dataKey="nome" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} tickFormatter={(val) => `R$${val}`} />
                   <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '12px', border: 'none' }} formatter={(value) => `R$ ${value.toFixed(2)}`} />
                   <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+                    {/* A correção foi feita na linha de baixo (fontWeight="bold") e troquei por LabelList que é mais estável */}
+                    <LabelList dataKey="total" position="top" fill="#64748B" fontSize={10} fontWeight="bold" formatter={(v) => v > 0 ? `R$${v.toFixed(0)}` : ''} />
                     {dadosFaturaCartao.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.cor} />)}
                   </Bar>
                 </BarChart>

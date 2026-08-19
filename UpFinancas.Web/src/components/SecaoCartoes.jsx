@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { gerarExtratoCartaoPDF } from '../utils/geradorPDF';
 
 const IconPencil = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.112l-2.051.683a.75.75 0 01-.955-.955l.683-2.051a4.5 4.5 0 011.112-1.89l13.438-13.438zM16.862 4.487L19.5 7.125" /></svg>;
 const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>;
@@ -57,7 +58,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
     
     const fechamento = parseInt(diaFechamento) || 31;
     
-    // LOGICA CORRIGIDA: >= para o próprio dia cair na próxima fatura
     if (diaCompra >= fechamento) {
       dataBaseCompra.setMonth(dataBaseCompra.getMonth() + 1);
     }
@@ -611,7 +611,7 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                       <span className="text-xl font-black text-slate-800 leading-tight">R$ {totalFaturaMes.toFixed(2)}</span>
                     </div>
                     
-                    <div className="h-7 mt-1 flex items-center">
+                    <div className="h-7 mt-1 flex items-center gap-2">
                       {temComprasPendentesNaTabela ? (
                         pagamentoEmConfirmacao === dados.cartaoId ? (
                           <div className="flex gap-1 bg-emerald-50 p-0.5 rounded border border-emerald-200 animate-fade-in w-fit shadow-sm">
@@ -643,10 +643,25 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                           </button>
                         )
                       ) : null}
+
+                      {/* --- BOTÃO DE GERAR PDF --- */}
+                      <button 
+                        onClick={() => gerarExtratoCartaoPDF(
+                          cartaoObj, 
+                          comprasAtivasMapeadas.map(c => c.original), 
+                          `${strMes} ${dataFoco.getFullYear()}`
+                        )}
+                        className="text-[9px] font-black tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-1.5 rounded hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-1"
+                        title="Baixar Extrato Separado"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        EXTRATO
+                      </button>
                     </div>
                   </div>
                   
-                  {/* === ADICIONADO: max-h-[130px] overflow-y-auto hide-scroll e pr-1 === */}
                   <div className="flex-1 border-l border-slate-100/50 pl-4 max-h-[130px] overflow-y-auto hide-scroll">
                     <div className="grid grid-cols-2 gap-2 pr-1">
                       {Object.entries(totaisPorTitular).map(([nome, valor]) => {
@@ -671,7 +686,6 @@ export default function SecaoCartoes({ comprasPorCartao, cartoes, adicionarCarta
                       )}
                     </div>
                   </div>
-                  {/* === FIM DAS ALTERAÇÕES === */}
 
                   <div className="flex items-center gap-2 pl-2">
                     {dados.cartaoId && (
