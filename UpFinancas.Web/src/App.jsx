@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useFinancas } from './hooks/useFinancas';
 import Dashboard from './components/Dashboard';
 import SecaoCartoes from './components/SecaoCartoes';
-import SecaoGastos from './components/SecaoGastos'; // <--- Nova Importação
+import SecaoGastos from './components/SecaoGastos';
 import Auth from './components/Auth'; 
 import Perfil from './components/Perfil'; 
+import BotaoSpecular from './components/BotaoSpecular'; // <--- Botão animado importado aqui
+import ClickSpark from './components/ClickSpark';
 
 export default function App() {
   const [usuarioLogado, setUsuarioLogado] = useState(() => {
@@ -50,7 +52,7 @@ export default function App() {
       localStorage.setItem('upfinancas_user', JSON.stringify(user));
       localStorage.setItem('upfinancas_token', token); 
       setUsuarioLogado(user);
-      carregarDados(); // Carrega os dados na hora em que faz login
+      carregarDados(); 
     }} />;
   }
 
@@ -71,21 +73,40 @@ export default function App() {
         }
       `}</style>
 
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           
+          {/* --- LOGO --- */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm">U</div>
-            <span className="font-black text-slate-800 text-lg tracking-tight">UpFinanças</span>
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-200">U</div>
+            <span className="font-black text-slate-800 text-xl tracking-tight hidden md:block">UpFinanças</span>
           </div>
           
-          <nav className="flex gap-2">
-            <button onClick={() => setAbaAtiva('dashboard')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'dashboard' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Dashboard</button>
-            <button onClick={() => setAbaAtiva('cartoes')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'cartoes' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Cartões</button>
-            <button onClick={() => setAbaAtiva('gastos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'gastos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Gastos da Casa</button>
-            <button onClick={() => setAbaAtiva('emprestimos')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${abaAtiva === 'emprestimos' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>Empréstimos</button>
+          {/* --- NOVA NAVEGAÇÃO ANIMADA (SPECULAR) --- */}
+          <nav className="flex items-center gap-3">
+            <BotaoSpecular 
+              rotulo="Dashboard" 
+              ativo={abaAtiva === 'dashboard'} 
+              onClick={() => setAbaAtiva('dashboard')} 
+            />
+            <BotaoSpecular 
+              rotulo="Cartões" 
+              ativo={abaAtiva === 'cartoes'} 
+              onClick={() => setAbaAtiva('cartoes')} 
+            />
+            <BotaoSpecular 
+              rotulo="Gastos da Casa" 
+              ativo={abaAtiva === 'gastos'} 
+              onClick={() => setAbaAtiva('gastos')} 
+            />
+            <BotaoSpecular 
+              rotulo="Empréstimos" 
+              ativo={abaAtiva === 'emprestimos'} 
+              onClick={() => setAbaAtiva('emprestimos')} 
+            />
           </nav>
           
+          {/* --- CONTROLES DA DIREITA (Data e Perfil) --- */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-2 py-1.5 rounded-xl font-black text-sm shadow-sm select-none">
               <button onClick={() => alterarMes(-1)} className="hover:text-indigo-900 hover:bg-indigo-100 transition-colors p-1.5 rounded-lg flex items-center justify-center">
@@ -110,15 +131,13 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 border-l pl-4 border-slate-200">
-               
-               {/* ÁREA DO NOME CLICÁVEL (ABRE O PERFIL) */}
                <div 
                  onClick={() => setAbaAtiva('perfil')} 
                  className="flex flex-col items-end cursor-pointer hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
                  title="Editar configurações da conta"
                >
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Logado como</span>
-                  <span className="text-sm font-black text-indigo-600 leading-tight">{usuarioLogado.nome}</span>
+                 <span className="text-[10px] font-bold text-slate-400 uppercase">Logado como</span>
+                 <span className="text-sm font-black text-indigo-600 leading-tight">{usuarioLogado.nome}</span>
                </div>
                
                <button onClick={handleLogout} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-lg text-xs font-black transition-colors" title="Sair e fechar a sessão">
@@ -148,7 +167,6 @@ export default function App() {
           />
         )}
         
-        {/* COMPONENTE DE GASTOS DA CASA ADICIONADO AQUI */}
         {abaAtiva === 'gastos' && (
           <SecaoGastos dataFoco={dataMaster} />
         )}
@@ -162,6 +180,7 @@ export default function App() {
             atualizarPerfil={atualizarPerfil} 
           />
         )}
+        <ClickSpark color="#a9a4e8" />
       </main>
     </div>
   );
