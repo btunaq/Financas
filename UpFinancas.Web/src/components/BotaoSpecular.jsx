@@ -28,10 +28,11 @@ export default function BotaoSpecular({ rotulo, ativo, onClick }) {
       <div
         className="absolute inset-0 rounded-xl transition-all duration-300"
         style={{
-          background: isHovered 
+          // CORREÇÃO: Alterado de 'background' para 'backgroundImage'
+          backgroundImage: isHovered 
             ? `radial-gradient(50px circle at ${position.x}px ${position.y}px, ${ativo ? 'rgba(255,255,255,0.8)' : 'rgba(99,102,241,0.8)'}, transparent 100%)`
-            : "transparent",
-          backgroundColor: ativo ? "#4f46e5" : "#e2e8f0" // Cores base da borda (indigo-600 ou slate-200)
+            : "none",
+          backgroundColor: ativo ? "#4f46e5" : "#e2e8f0" 
         }}
       />
 
@@ -52,7 +53,8 @@ export default function BotaoSpecular({ rotulo, ativo, onClick }) {
       <div
         className={`absolute inset-[1px] rounded-[11px] pointer-events-none transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
         style={{
-          background: `radial-gradient(80px circle at ${position.x}px ${position.y}px, ${ativo ? 'rgba(255,255,255,0.25)' : 'rgba(99,102,241,0.1)'}, transparent 100%)`
+          // CORREÇÃO: Alterado de 'background' para 'backgroundImage'
+          backgroundImage: `radial-gradient(80px circle at ${position.x}px ${position.y}px, ${ativo ? 'rgba(255,255,255,0.25)' : 'rgba(99,102,241,0.1)'}, transparent 100%)`
         }}
       />
 

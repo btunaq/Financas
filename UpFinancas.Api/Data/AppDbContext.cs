@@ -11,6 +11,9 @@ namespace UpFinancas.Api.Data
         public DbSet<CompraCartao> ComprasCartao { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
 
+        public DbSet<ContaFixa> ContasFixas { get; set; }
+        public DbSet<HistoricoConta> HistoricosContas { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // O ficheiro agora está limpo! 

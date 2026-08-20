@@ -1,7 +1,9 @@
 using System.Text;
+using System.IO;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using UpFinancas.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +47,19 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
+// Garante que a pasta wwwroot/uploads existe e força a API a servir ela
+var pastaUploads = Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads");
+if (!Directory.Exists(pastaUploads))
+{
+    Directory.CreateDirectory(pastaUploads);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(pastaUploads),
+    RequestPath = "/uploads"
+});
+
 // Aplica as migrações automaticamente no banco ao iniciar
 using (var scope = app.Services.CreateScope())
 {
@@ -52,8 +67,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-app.UseAuthentication(); // 1º Lê o Token
-app.UseAuthorization();  // 2º Verifica as permissões
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.Run();
